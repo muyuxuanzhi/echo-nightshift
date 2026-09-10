@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ECHO · 存档交换</title>
+<style>
+  :root{
+    --scan-op:.06;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0;padding:0;height:100%;
+    background:#050706;
+    font-family:'Consolas','Courier New',monospace;
+    overflow:hidden;
+  }
+
+  /* ===== 主题：现在(A线) = 绿色荧光屏 / 过去(B线) = 蓝色荧光屏 ===== */
+  body.theme-a{ --accent:#4dffb8; --accent-dim:#1f6b4d; --bg:#03100b; --glow:0 0 6px rgba(77,255,184,.55); }
+  body.theme-b{ --accent:#4da8ff; --accent-dim:#1c4a7a; --bg:#020a14; --glow:0 0 6px rgba(77,168,255,.55); }
+
+  #crt{
+    position:relative;width:100vw;height:100vh;
+    background:var(--bg);
+    color:var(--accent);
+    transition:background .5s ease,color .5s ease;
+  }
+  #crt::before{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:5;
+    background:repeating-linear-gradient(
+      to bottom, rgba(255,255,255,var(--scan-op)) 0px, rgba(255,255,255,var(--scan-op)) 1px,
+      transparent 1px, transparent 3px
+    );
+    mix-blend-mode:overlay;
+  }
+  #crt::after{
+    content:"";position:absolute;inset:0;pointer-events:none;z-index:6;
+    box-shadow: inset 0 0 120px rgba(0,0,0,.75), inset 0 0 40px rgba(0,0,0,.5);
+  }
+  @keyframes flicker{
+    0%,100%{opacity:1;} 92%{opacity:1;} 93%{opacity:.86;} 94%{opacity:1;} 97%{opacity:.92;}
+  }
+  #screen{ animation:flicker 6s infinite; height:100%; display:flex; flex-direction:column; }
+
+  /* ===== 顶部栏 ===== */
+  #topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 18px;border-bottom:1px solid var(--accent-dim);
+    text-shadow:var(--glow);
+    flex-shrink:0;
+    gap:16px;
+  }
+  #topbar .title{font-size:15px;letter-spacing:3px;flex-shrink:0;}
+  #topbar .title small{opacity:.6;font-size:11px;letter-spacing:1px;display:block;margin-top:2px;}
+  #tl-control{flex:1;display:flex;justify-content:center;align-items:center;}
+  .locked-hint{font-size:12px;opacity:.5;letter-spacing:2px;}
+  .tl-toggle{
+    background:transparent;border:1px solid var(--accent);color:var(--accent);
+    padding:7px 20px;font-family:inherit;font-size:12px;letter-spacing:2px;cursor:pointer;
+    box-shadow:var(--glow);transition:.2s;
+  }
+  .tl-toggle:hover{background:var(--accent);color:#000;}
+  #clock{font-size:12px;opacity:.7;flex-shrink:0;}
+
+  /* ===== 主体 ===== */
+  #body{flex:1;display:flex;min-height:0;position:relative;}
+  #nav{
+    width:150px;flex-shrink:0;border-right:1px solid var(--accent-dim);
+    padding:14px 0;display:flex;flex-direction:column;gap:2px;
+  }
+  .nav-item{
+    padding:10px 18px;cursor:pointer;font-size:13px;letter-spacing:2px;
+    opacity:.6;border-left:2px solid transparent;transition:.15s;
+  }
+  .nav-item:hover{opacity:.9;background:rgba(255,255,255,.03);}
+  .nav-item.active{opacity:1;border-left-color:var(--accent);background:rgba(255,255,255,.05);text-shadow:var(--glow);}
+  .nav-item .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:8px;opacity:0;vertical-align:middle;}
+  .nav-item.has-new .dot{opacity:1;box-shadow:var(--glow);}
+
+  #main{flex:1;padding:20px 26px;overflow-y:auto;min-height:0;}
+  #main::-webkit-scrollbar{width:6px;}
+  #main::-webkit-scrollbar-thumb{background:var(--accent-dim);}
+
+  .panel-title{font-size:13px;letter-spacing:3px;opacity:.7;margin-bottom:14px;border-bottom:1px dashed var(--accent-dim);padding-bottom:8px;}
+
+  /* 文件列表 */
+  .file-row{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;
+    border:1px solid transparent;font-size:13px;
+  }
+  .file-row:hover{border-color:var(--accent-dim);background:rgba(255,255,255,.03);}
+  .file-row.locked{opacity:.5;}
+  .file-row .icon{opacity:.8;}
+  .file-row .name{flex:1;}
+  .file-row .tag{font-size:10px;padding:2px 6px;border:1px solid var(--accent-dim);opacity:.7;}
+
+  .doc-view{
+    white-space:pre-wrap;line-height:1.9;font-size:13px;padding:16px;
+    border:1px solid var(--accent-dim);background:rgba(255,255,255,.02);
+    margin-top:10px;
+  }
+  .back-link{cursor:pointer;opacity:.7;font-size:12px;margin-bottom:10px;display:inline-block;}
+  .back-link:hover{opacity:1;}
+
+  /* 邮件（存档/读档的展示层） */
+  .mail-row{
+    display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
+    border:1px solid transparent;border-bottom:1px solid var(--accent-dim);font-size:13px;
+  }
+  .mail-row:hover{background:rgba(255,255,255,.03);}
+  .mail-row.locked{opacity:.4;cursor:not-allowed;}
+  .mail-row .unread-dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:var(--glow);flex-shrink:0;}
+  .mail-row .unread-dot.hidden{background:transparent;box-shadow:none;}
+  .mail-row .mail-from{width:110px;flex-shrink:0;opacity:.85;}
+  .mail-row .mail-subject{flex:1;}
+  .mail-row .mail-time{opacity:.5;font-size:11px;flex-shrink:0;}
+  .mail-row .tag{font-size:10px;padding:2px 6px;border:1px solid var(--accent-dim);opacity:.7;flex-shrink:0;}
+
+  .mail-detail .meta{opacity:.6;font-size:12px;margin-bottom:14px;}
+  .mail-detail .subject{font-size:15px;letter-spacing:1px;margin-bottom:4px;text-shadow:var(--glow);}
+  .mail-detail .body{white-space:pre-wrap;line-height:1.9;font-size:13px;padding:16px;border:1px solid var(--accent-dim);background:rgba(255,255,255,.02);}
+
+  .compose-toggle-wrap{margin-top:18px;padding-top:14px;border-top:1px dashed var(--accent-dim);}
+  .compose-box{margin-top:14px;border:1px solid var(--accent-dim);padding:14px;background:rgba(255,255,255,.02);}
+  .compose-box .compose-label{font-size:12px;opacity:.6;margin-bottom:8px;letter-spacing:1px;}
+  .compose-box textarea{
+    width:100%;min-height:90px;background:transparent;border:1px solid var(--accent-dim);color:var(--accent);
+    font-family:inherit;font-size:13px;padding:10px;outline:none;resize:vertical;line-height:1.7;
+  }
+  .compose-actions{display:flex;gap:10px;margin-top:10px;justify-content:flex-end;}
+
+  /* 终端 */
+  #term-log{font-size:13px;line-height:1.8;white-space:pre-wrap;margin-bottom:8px;}
+  #term-log .cmd-echo{opacity:.55;}
+  #term-log .cmd-err{color:#ff6767;}
+  #term-log .cmd-ok{color:var(--accent);}
+  .term-input-row{display:flex;align-items:center;gap:8px;border-top:1px solid var(--accent-dim);padding-top:10px;}
+  .term-input-row .prompt{opacity:.8;}
+  #term-input{
+    flex:1;background:transparent;border:none;outline:none;color:var(--accent);
+    font-family:inherit;font-size:13px;text-shadow:var(--glow);
+  }
+
+  .action-btn{
+    background:transparent;border:1px solid var(--accent);color:var(--accent);
+    padding:8px 16px;font-family:inherit;cursor:pointer;letter-spacing:1px;font-size:12px;
+  }
+  .action-btn:hover{background:var(--accent);color:#000;}
+  .action-btn.ghost{border-color:var(--accent-dim);color:var(--accent);opacity:.7;}
+  .action-btn.ghost:hover{background:transparent;opacity:1;}
+
+  .hint{opacity:.55;font-size:12px;margin-top:14px;line-height:1.7;}
+
+  /* ===== 视频/图片素材占位框 ===== */
+  .media-box{
+    display:flex;gap:14px;align-items:flex-start;
+    border:1px dashed var(--accent-dim);background:rgba(255,255,255,.03);
+    padding:14px;margin-top:10px;
+  }
+  .media-icon{font-size:28px;opacity:.8;flex-shrink:0;line-height:1;}
+  .media-info{flex:1;min-width:0;}
+  .media-label{font-size:12px;letter-spacing:1px;opacity:.85;margin-bottom:6px;}
+  .media-hint{font-size:12px;opacity:.55;line-height:1.6;}
+  .media-hint b{opacity:.9;font-weight:normal;color:var(--accent);}
+
+  /* ===== 吐槽独白对话框 ===== */
+  .quip-bar{
+    position:absolute;left:150px;right:0;bottom:0;
+    display:flex;align-items:flex-start;gap:12px;
+    padding:12px 22px;background:rgba(0,0,0,.88);
+    border-top:1px solid var(--accent-dim);
+    transform:translateY(100%);transition:transform .3s ease;
+    z-index:20;
+  }
+  .quip-bar.show{transform:translateY(0);}
+  .quip-avatar{
+    width:42px;height:42px;flex-shrink:0;border:1px solid var(--accent);border-radius:6px;
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    background:rgba(255,255,255,.04);box-shadow:var(--glow);
+  }
+  .quip-content{flex:1;min-width:0;}
+  .quip-name{font-size:10px;letter-spacing:2px;opacity:.55;margin-bottom:4px;}
+  .quip-text{font-size:13px;line-height:1.7;text-shadow:var(--glow);}
+  .quip-close{flex-shrink:0;cursor:pointer;opacity:.45;font-size:12px;padding:2px 4px;}
+  .quip-close:hover{opacity:.9;}
+
+  /* ===== 文字恐怖：终端故障文本递进腐蚀效果 ===== */
+  .glitch-l0{opacity:.95;}
+  .glitch-l1{opacity:.88;}
+  .glitch-l2{opacity:.8;letter-spacing:.5px;}
+  .glitch-l3{opacity:.72;letter-spacing:1px;text-shadow:0 0 3px #ff4d6d;}
+  .glitch-l4{opacity:.6;letter-spacing:1.5px;text-shadow:0 0 7px #ff2d55;color:#ffb3c2;}
+
+  /* 系统面板 */
+  .flag-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px dashed var(--accent-dim);font-size:12px;}
+  .flag-val.on{color:var(--accent);}
+  .flag-val.off{opacity:.4;}
+
+  /* 结局遮罩 */
+  #ending{
+    position:fixed;inset:0;background:#000;color:#4dffb8;z-index:50;
+    display:none;align-items:center;justify-content:center;flex-direction:column;
+    text-align:center;padding:40px;text-shadow:0 0 8px rgba(77,255,184,.6);
+  }
+  #ending.show{display:flex;}
+  #ending h1{letter-spacing:8px;font-size:22px;margin-bottom:20px;}
+  #ending p{max-width:600px;line-height:2;font-size:14px;opacity:.85;margin-bottom:30px;}
+
+  ::selection{background:var(--accent);color:#000;}
+</style>
+</head>
+<body class="theme-b">
+
+<div id="crt"><div id="screen">
+
+  <div id="topbar">
+    <div class="title">ECHO · 存档交换<small id="title-sub">SHARED_TERMINAL // 七天前 · 值班记录</small></div>
+    <div id="tl-control">
+      <span id="tl-locked-hint" class="locked-hint">［仍锁定在过去］把该读的邮件都读完，也许能找到出路……</span>
+      <button id="tl-toggle-btn" class="tl-toggle" style="display:none;"></button>
+    </div>
+    <div id="clock"></div>
+  </div>
+
+  <div id="body">
+    <div id="nav">
+      <div class="nav-item active" data-app="terminal"><span class="dot"></span>终端</div>
+      <div class="nav-item" data-app="files"><span class="dot"></span>文件</div>
+      <div class="nav-item" data-app="mail"><span class="dot"></span>邮件</div>
+      <div class="nav-item" data-app="system"><span class="dot"></span>系统状态</div>
+    </div>
+    <div id="main"></div>
+    <div id="quip-bar" class="quip-bar">
+      <div class="quip-avatar" id="quip-avatar">😐</div>
+      <div class="quip-content">
+        <div class="quip-name">值班的我 · 吐槽中</div>
+        <div class="quip-text" id="quip-text"></div>
+      </div>
+      <div class="quip-close" onclick="hideQuip()">✕</div>
+    </div>
+  </div>
+
+</div></div>
+
+<div id="ending">
+  <h1>ECHO_END</h1>
+  <p id="ending-text"></p>
+  <button class="action-btn" onclick="location.reload()">重新开始</button>
+</div>
+
+<script>
+/* =========================================================
+   ECHO · 存档交换  —— 双线终端悬疑 · 可玩骨架 Demo (v2)
+   方案四(复古终端UI) + 方案五(双主角存档跨线) 结合体
+   本版改动：
+   1) "存档/读档"不再用单独的留言板，而是包装成「收发邮件」。
+   2) 顶部不再是两个时间线按钮，改为单个"切换"按钮，
+      且在剧情解锁前完全隐藏/禁用——玩家只能先待在过去(B线)。
+   3) 过去(B线) = 蓝色 UI；现在(A线) = 绿色 UI。
+   4) 流程：先在过去顺序读完引导邮件 → 最后一封邮件提示"写信寄给未来"
+      → 在此之前【写信】按钮一直隐藏 → 写下第一封信后，
+      才真正解锁"双线穿越"玩法（顶部切换按钮出现）。
+   ========================================================= */
+
+// ---------- 状态（localStorage 持久化，方便调试/重开） ----------
+const STORAGE_KEY = "echo_save_demo_v2";
+
+function defaultState(){
+  return {
+    timeline: "B",            // 开局固定停留在"过去"
+    introRead: [],            // 已读的引导邮件 id 列表（顺序解锁）
+    sendUnlocked: false,      // 是否已解锁【写信】入口（读完最后一封引导邮件后为 true）
+    crossUnlocked: false,     // 是否已解锁双线穿越（发出第一封信后为 true）
+    flags: {
+      gotAccessCode: false,     // A线是否已查看门禁记录，得知密码
+      decryptedReport: false,   // B线是否已解密事故报告
+      reportSent: false,        // 事故报告内容是否已被"寄给未来"（触发结局线索）
+      endingSeen: false,
+      watchedVideo: false,      // A线是否已看过监控录像（获得私人日记密码）
+      decryptedDiary: false,    // B线是否已解密私人日记
+      sawPhoto: false,          // B线是否已查看值班室照片
+    },
+    sentMails: [],   // 双线之间来回的信 {fromTl,toTl,subject,body,time,isEnding,read}
+    filesRead: {},   // 已读文件 key: `${tl}:${name}`
+  };
+}
+
+let state = loadState();
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      const merged = defaultState();
+      Object.assign(merged, parsed);
+      merged.flags = Object.assign(defaultState().flags, parsed.flags || {});
+      return merged;
+    }
+  }catch(e){}
+  return defaultState();
+}
+function saveState(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ---------- 引导邮件链（仅 B 线 / 过去，顺序解锁） ----------
+const INTRO_MAILS = [
+  {
+    id:"intro1", from:"负责人", time:"22:10",
+    subject:"今晚交接",
+    body:"今晚培育室那批样本的温控你盯紧点，出了问题算你的。\n对了，这台终端的账号是共用的，别乱改密码，值班表上后面还有人要用。",
+    quip:"共用账号是吧，责任共用，功劳没有，懂了。", mood:"normal"
+  },
+  {
+    id:"intro2", from:"系统", time:"23:15",
+    subject:"日常报告已生成",
+    body:"今日值班日常报告已归档，如需查阅请转到「文件」面板查看。\n（本邮件为自动发送，请勿回复）",
+    quip:"自动发送，连个署名都懒得给，AI都比我勤快。", mood:"normal"
+  },
+  {
+    id:"intro3", from:"未知发件人", time:"23:48",
+    subject:"如果你看到这封信",
+    body:"我不知道这封信会不会有人看到。\n\n如果有——说明这个账号还在被使用，说明这台终端还醒着。\n那就好。至少不是只有我一个人守着它。",
+    quip:"陌生来信，第一反应是广告——结果比广告还玄乎。", mood:"creepy"
+  },
+  {
+    id:"intro4", from:"我自己", time:"23:55",
+    subject:"最后想说的话",
+    body:"培育室那边的事情有点不对劲，我可能没办法把这些话当面告诉任何人了。\n\n我翻过这台终端一些奇怪的系统日志——上面的时间戳，是"未来"的。\n\n如果这是真的，那我想试着给"未来的自己"写一封信，把眼下发生的事留个记号。\n\n……邮件面板下面应该会出现【写一封信】的入口了，去试试吧。",
+    quip:"给未来的自己写信？行吧，反正加班费也不会因为跨时间线就翻倍。", mood:"creepy"
+  },
+];
+
+function introMailUnlocked(idx){
+  if(idx === 0) return true;
+  return state.introRead.includes(INTRO_MAILS[idx-1].id);
+}
+function allIntroRead(){
+  return INTRO_MAILS.every(m => state.introRead.includes(m.id));
+}
+
+// ---------- 文件系统（按时间线区分，部分受 flags 控制显隐/锁定） ----------
+function getFiles(tl){
+  if(tl === "A"){
+    return [
+      {
+        name: "值班日志_现在.txt", locked:false,
+        quip:"我的笔迹，我不认。", mood:"normal",
+        content: "23:52\n接手夜班没多久，邮箱里忽然多出一封陌生来信，落款是「我自己」。\n\n值班表上写着七天前也有人用这台机器，账号还是我的这个——\n但我从没上过那天的班。"
+      },
+      {
+        name: "门禁记录.log", locked:false,
+        quip:"卡号后面没再出现过——好家伙，人间蒸发是吧。", mood:"creepy",
+        content: "[系统日志 · 门禁]\n七天前 23:47  卡号 ****8341  进入 西区-培育室\n七天前 23:51  卡号 ****8341  离开 西区-培育室\n(该卡号此后未再出现于任何记录)",
+        onRead(){ state.flags.gotAccessCode = true; }
+      },
+      {
+        name: "群聊记录.txt", locked:false,
+        quip:"复制粘贴是吧，这年头连闹鬼都不敬业。", mood:"creepy",
+        content: "[群聊记录 · 自动导出]\n\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n系统提醒：检测到异常刷屏，该账号发言已被限制\n未知联系人：别回，他知道了，先别回"
+      },
+      {
+        name: "监控录像.mp4", locked:false,
+        mediaType:"video",
+        mediaName:"video/monitor_west_2349.mp4",
+        mediaHint:"建议素材：5~8秒循环片段。低分辨率黑白监控画面，带扫描线/噪点；一个穿工装外套的模糊人影走向温控面板并伸手拧动旋钮；结尾定格特写一张便签，上面写着 <b>0426</b>。",
+        quip:"工装外套……我柜子里也有一件一模一样的，巧了是吧。", mood:"creepy",
+        content: "[监控录像 · 西区培育室 · 23:49]\n\n画面很暗，噪点很重。\n一个穿工装外套的人影走到温控面板前，伸手拧了拧旋钮。\n\n镜头怼近的最后一帧，能看到面板上贴着一张便签，边角卷起，上面潦草地写着：\n\n    0426\n\n人影的脸全程没有正对镜头。\n\n（画面到这里就断了，后面是雪花。）",
+        onRead(){ state.flags.watchedVideo = true; }
+      },
+    ];
+  }else{
+    return [
+      {
+        name: "早班交接.txt", locked:false,
+        quip:"销毁前先看一遍——好家伙，纯纯的形式主义。", mood:"normal",
+        content: "早班交接：\n负责人说培育室那边出了点状况，让我把当天的门禁数据核对一遍，\n核对完就把「事故报告」销毁——密码是当天最后进入那张卡号的后四位，自己去门禁记录里查。\n\n（备注：这句话真讽刺，销毁前居然还要我先看一遍。）"
+      },
+      {
+        name: "潦草笔记.txt", locked:false,
+        quip:"老话说得好，中元节这天鬼门大开——我寻思现在天天都开，毕竟牛马也不挑日子。", mood:"creepy",
+        content: "今天在值班室随手写的：\n\n台灯坏了会一闪一闪的，还挺可爱\n\n看看看看看看\n 看看看看看看看\n  看看看看看看看看\n   看看看看看看看看看\n    看看看看看看看看看看\n   看看看看看看看看看\n  看看看看看看看看\n 看看看看看看看\n看看看看看看\n\n……写着写着不知道怎么就有点毛了，删了吧，删不掉，先这样。"
+      },
+      {
+        name: state.flags.decryptedReport ? "事故报告.txt" : "事故报告.enc",
+        locked: !state.flags.decryptedReport,
+        quip: state.flags.decryptedReport ? "操作账号是我自己……行，这锅我先背着，反正也不是头一次。" : undefined,
+        mood: state.flags.decryptedReport ? "creepy" : undefined,
+        content: state.flags.decryptedReport
+          ? "[已解密]\n培育室的恒温系统被人为调高了整整六度。\n设备日志显示操作时间是 23:49，操作账号——是我自己的账号。\n\n我不记得自己做过这件事。\n\n如果以后还有人用这台终端，也许该把这份记录寄给未来的自己——邮件面板里应该能做到。"
+          : "[已加密] 使用命令解密： decrypt 事故报告 <四位密码>"
+      },
+      {
+        name: state.flags.decryptedDiary ? "私人日记.txt" : "私人日记.enc",
+        locked: !state.flags.decryptedDiary,
+        quip: state.flags.decryptedDiary ? "写日记这习惯，原来七天前的我也有，肉麻死了。" : "又是一个加密文件，合着这破电脑就没几个文件能直接看的。",
+        mood: state.flags.decryptedDiary ? "creepy" : "normal",
+        content: state.flags.decryptedDiary
+          ? "[已解密]\n11月的某天，我开始怀疑这台终端不止我一个人在用。\n\n有些文件我明明没建过，却带着我的账号水印；有些操作日志的时间，是我睡着时的时间。\n\n今天我把培育室的门禁密码写在了监控室的便签上——不是我疏忽，是我故意的。\n\n如果有一天『另一个我』看到了这份日记，希望TA明白：\n这台终端记得的事，比我们任何一个人都多。"
+          : "[已加密] 使用命令解密： decrypt 私人日记 <四位密码>（提示：密码出现在别处的画面里）"
+      },
+      {
+        name: "值班室照片.jpg", locked: !state.flags.decryptedDiary,
+        mediaType:"image",
+        mediaName:"image/duty_room.jpg",
+        mediaHint:"建议素材：暖黄灯光的老旧值班室实拍/摆拍照片。桌角一台老式CRT显示器还亮着，屏幕反光里隐约能看出一个不属于房间的人影轮廓（半透明/若隐若现，不需要太写实）。",
+        quip:"……那个反光是显示器本身的花纹吧。一定是。", mood:"creepy",
+        content: "值班室，晚上拍的。\n\n桌上的台灯歪了一点，没人扶。\n\n显示器还亮着，屏幕反光里映出半个房间——\n仔细看，好像多了一个不该在那儿的轮廓。\n\n（也可能只是我盯屏幕太久，眼睛花了。）",
+        onRead(){ state.flags.sawPhoto = true; }
+      },
+    ];
+  }
+}
+
+// ---------- 渲染 ----------
+const $ = (sel) => document.querySelector(sel);
+const $$ = (sel) => document.querySelectorAll(sel);
+const mainEl = $("#main");
+
+function applyTheme(){
+  document.body.className = state.timeline === "A" ? "theme-a" : "theme-b";
+  $("#title-sub").textContent = state.timeline === "A"
+    ? "SHARED_TERMINAL // 现在 · 值班记录"
+    : "SHARED_TERMINAL // 七天前 · 值班记录";
+  renderTopControl();
+}
+
+function renderTopControl(){
+  const hint = $("#tl-locked-hint");
+  const btn = $("#tl-toggle-btn");
+  if(state.crossUnlocked){
+    hint.style.display = "none";
+    btn.style.display = "inline-block";
+    btn.textContent = state.timeline === "A" ? "◀ 穿越回 · 七天前" : "穿越到 · 现在 ▶";
+  }else{
+    hint.style.display = "inline-block";
+    btn.style.display = "none";
+  }
+}
+
+function toggleTimeline(){
+  if(!state.crossUnlocked) return;
+  state.timeline = state.timeline === "A" ? "B" : "A";
+  applyTheme();
+  saveState();
+  renderApp(currentApp);
+  renderNavDots();
+}
+
+let currentApp = "terminal";
+
+function switchApp(app){
+  currentApp = app;
+  $$(".nav-item").forEach(n => n.classList.toggle("active", n.dataset.app === app));
+  renderApp(app);
+}
+
+function renderApp(app){
+  if(app === "terminal") return renderTerminal();
+  if(app === "files") return renderFiles();
+  if(app === "mail") return renderMail();
+  if(app === "system") return renderSystem();
+}
+
+// ---- 文件面板 ----
+function renderFiles(fileToOpen){
+  const files = getFiles(state.timeline);
+  if(fileToOpen){
+    const f = files.find(x => x.name === fileToOpen);
+    if(f && !f.locked){
+      markFileRead(f);
+      mainEl.innerHTML = `
+        <div class="panel-title">文件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+        <span class="back-link" onclick="renderFiles()">&laquo; 返回文件列表</span>
+        ${renderMediaBox(f)}
+        <div class="doc-view">${escapeHtml(f.content)}</div>
+      `;
+      showQuip(f.quip || randomQuip("file"), f.mood || "normal");
+      return;
+    }
+  }
+  mainEl.innerHTML = `
+    <div class="panel-title">文件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+    ${files.map(f => `
+      <div class="file-row ${f.locked?"locked":""}" onclick="${f.locked?"quipLockedFile()":`renderFiles('${f.name}')`}">
+        <span class="icon">${f.locked ? "🔒" : (f.mediaType === "video" ? "🎞" : f.mediaType === "image" ? "🖼" : "📄")}</span>
+        <span class="name">${f.name}</span>
+        ${f.locked ? '<span class="tag">加密</span>' : (f.mediaType ? `<span class="tag">${f.mediaType==="video"?"视频":"图片"}</span>` : "")}
+      </div>
+    `).join("")}
+    <div class="hint">提示：在「终端」里可以用 <b>ls</b> 查看文件、<b>cat 文件名</b> 阅读、<b>decrypt 文件名 密码</b> 解密加密文件。</div>
+  `;
+}
+
+function renderMediaBox(f){
+  if(!f.mediaType) return "";
+  const icon = f.mediaType === "video" ? "🎞" : "🖼";
+  const label = f.mediaType === "video" ? "视频素材占位" : "图片素材占位";
+  return `
+    <div class="media-box">
+      <div class="media-icon">${icon}</div>
+      <div class="media-info">
+        <div class="media-label">［${label}］建议文件名：${escapeHtml(f.mediaName||"")}</div>
+        <div class="media-hint">${f.mediaHint||""}</div>
+      </div>
+    </div>
+  `;
+}
+
+function markFileRead(f){
+  const key = `${state.timeline}:${f.name}`;
+  if(!state.filesRead[key]){
+    state.filesRead[key] = true;
+    if(typeof f.onRead === "function") f.onRead();
+    saveState();
+  }
+}
+
+function escapeHtml(str){
+  return str.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+}
+
+// ---- 吐槽独白系统：点击邮件/文件/解谜物品时，主角（社畜吐槽役）发表评论 ----
+const QUIP_POOL = {
+  mail: ["已读。班味扑面，先撑住。","邮件而已，我心态稳得很。","嗯，收到，继续搬。","这年头连邮件都不让人消停。"],
+  file: ["报表看多了，这种文档不算什么。","行吧，字挺多，重点我记下了。","继续念经式阅读中……"],
+  fileLocked: ["加密？合着连销毁个文件都要卷密码。","锁上了，跟我当年被锁工位一个味儿。"],
+  decryptFail: ["密码不对，白激动一场，难绷。"],
+  decryptOk: ["解开了……有点后悔，但已经晚了。"],
+};
+let quipTimer = null;
+function showQuip(text, mood){
+  if(!text) return;
+  const bar = $("#quip-bar");
+  const avatar = $("#quip-avatar");
+  if(!bar) return;
+  $("#quip-text").textContent = text;
+  avatar.textContent = mood === "creepy" ? "😑" : mood === "ok" ? "😮‍💨" : mood === "fail" ? "😒" : "😐";
+  bar.classList.add("show");
+  clearTimeout(quipTimer);
+  quipTimer = setTimeout(() => bar.classList.remove("show"), 7000);
+}
+function hideQuip(){ clearTimeout(quipTimer); $("#quip-bar").classList.remove("show"); }
+function randomQuip(pool){
+  const arr = QUIP_POOL[pool] || [];
+  return arr.length ? arr[Math.floor(Math.random() * arr.length)] : "";
+}
+function quipLockedFile(){ showQuip(randomQuip("fileLocked"), "normal"); }
+function quipLockedMail(){ showQuip("上一封还没读完呢，先按顺序来。", "normal"); }
+
+// ---- 邮件面板（存档/读档的展示层） ----
+let composeOpen = false;
+
+function buildMailList(tl){
+  // 收件箱 = 固定引导链（仅B线） + 双线之间来回收到的信
+  const list = [];
+  if(tl === "B"){
+    INTRO_MAILS.forEach((m, idx) => {
+      list.push({
+        kind:"intro", id:m.id, from:m.from, time:m.time, subject:m.subject, body:m.body,
+        locked: !introMailUnlocked(idx),
+        read: state.introRead.includes(m.id),
+        quip:m.quip, mood:m.mood,
+      });
+    });
+  }else{
+    list.push({
+      kind:"sys", id:"sys-welcome", from:"系统管理员", time:"今天 00:03",
+      subject:"账号异常读写提醒",
+      body:"值班账号「NIGHTWATCH_01」检测到跨时段异常读写，如非本人操作请立即上报。（本邮件为自动发送，请勿回复）",
+      locked:false, read: state.filesRead["A:__sys-welcome"] === true,
+      quip:"系统警告，程序员的地基我不懂，但这句我看得懂——让我小心点。", mood:"creepy",
+    });
+    if(state.flags.watchedVideo){
+      list.push({
+        kind:"sys2", id:"sys-warning", from:"负责人", time:"今天 00:47",
+        subject:"谁让你调监控了",
+        body:"西区那段录像不是随便什么人都能看的。\n看都看了，当我没说——但劝你一句，有些东西知道了就不能装作不知道。",
+        locked:false, read: state.filesRead["A:__sys-warning"] === true,
+        quip:"好家伙，监控我都能调，权限管理是摆设吗。", mood:"creepy",
+      });
+    }
+  }
+  state.sentMails
+    .filter(m => m.toTl === tl)
+    .forEach(m => list.push({
+      kind:"received", id:m.id, from: m.fromTl === "A" ? "来自「现在」的自己" : "来自「七天前」的自己",
+      time:m.time, subject:m.subject, body:m.body, locked:false, read:m.read, isEnding:m.isEnding,
+      quip: m.isEnding ? "行吧，寄都寄了，看看吧。" : undefined,
+    }));
+  return list;
+}
+
+function renderMail(openId){
+  const list = buildMailList(state.timeline);
+
+  if(openId){
+    const m = list.find(x => x.id === openId);
+    if(m && !m.locked){
+      markMailRead(m);
+      mainEl.innerHTML = `
+        <div class="panel-title">邮件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+        <span class="back-link" onclick="renderMail()">&laquo; 返回收件箱</span>
+        <div class="mail-detail">
+          <div class="subject">${escapeHtml(m.subject)}</div>
+          <div class="meta">发件人：${escapeHtml(m.from)}　${escapeHtml(m.time)}</div>
+          <div class="body">${escapeHtml(m.body)}</div>
+        </div>
+      `;
+      showQuip(m.quip || randomQuip("mail"), m.mood || "normal");
+      if(m.isEnding) setTimeout(triggerEnding, 900);
+      renderNavDots();
+      return;
+    }
+  }
+
+  mainEl.innerHTML = `
+    <div class="panel-title">邮件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+    ${list.map(m => `
+      <div class="mail-row ${m.locked?"locked":""}" onclick="${m.locked?"quipLockedMail()":`renderMail('${m.id}')`}">
+        <span class="unread-dot ${m.read?"hidden":""}"></span>
+        <span class="mail-from">${m.locked ? "?????" : escapeHtml(m.from)}</span>
+        <span class="mail-subject">${m.locked ? "〔尚未解锁〕" : escapeHtml(m.subject)}</span>
+        <span class="mail-time">${m.locked ? "" : escapeHtml(m.time)}</span>
+        ${m.locked ? '<span class="tag">未读上一封</span>' : ""}
+      </div>
+    `).join("")}
+    ${renderComposeSection()}
+  `;
+  if(composeOpen){
+    const ta = $("#compose-text");
+    if(ta) ta.focus();
+  }
+}
+
+function renderComposeSection(){
+  if(!state.sendUnlocked){
+    return `<div class="hint">把邮件按顺序读完，也许会有新的东西解锁……</div>`;
+  }
+  if(!composeOpen){
+    return `
+      <div class="compose-toggle-wrap">
+        <button class="action-btn" onclick="openCompose()">✉ 写一封信寄给${state.timeline === "B" ? "未来" : "过去"}的自己</button>
+      </div>
+    `;
+  }
+  const draft = defaultDraft();
+  return `
+    <div class="compose-box">
+      <div class="compose-label">寄给：${state.timeline === "B" ? "「现在」的自己" : "「七天前」的自己"}</div>
+      <textarea id="compose-text">${escapeHtml(draft)}</textarea>
+      <div class="compose-actions">
+        <button class="action-btn ghost" onclick="closeCompose()">取消</button>
+        <button class="action-btn" onclick="sendComposedMail()">发送</button>
+      </div>
+    </div>
+  `;
+}
+
+function defaultDraft(){
+  if(state.timeline === "B" && state.flags.decryptedReport && !state.flags.reportSent){
+    let base = "我查到了。培育室的恒温系统是被人为调高的，操作账号是我自己的——但我不记得做过这件事。\n如果你看到这封信，请一定要把这份记录留下来。";
+    if(state.flags.decryptedDiary){
+      base += "\n\n我还翻到了一篇没署名的日记，写日记的人也是"我"。TA说这台终端记得的事，比我们任何一个人都多。";
+    }
+    return base;
+  }
+  if(state.timeline === "B" && !state.crossUnlocked){
+    return "如果这封信真的能寄到"未来"——那我想说，我可能遇到麻烦了。\n请帮我看看这台终端里的记录，好吗？";
+  }
+  return "我收到你的信了。这边一切都还算正常，我会继续查下去的。";
+}
+
+function openCompose(){ composeOpen = true; renderMail(); }
+function closeCompose(){ composeOpen = false; renderMail(); }
+
+function sendComposedMail(){
+  const ta = $("#compose-text");
+  const text = ta ? ta.value.trim() : "";
+  if(!text) return;
+
+  const fromTl = state.timeline;
+  const toTl = fromTl === "A" ? "B" : "A";
+  const firstTime = !state.crossUnlocked;
+  const isReportMail = fromTl === "B" && state.flags.decryptedReport && !state.flags.reportSent;
+
+  const mail = {
+    id: "m" + Date.now(),
+    fromTl, toTl,
+    subject: isReportMail ? "观测数据" : (firstTime ? "寄给会看到这封信的你" : "一封回信"),
+    body: text,
+    time: nowLabel(),
+    isEnding: isReportMail,
+    read: false,
+  };
+  state.sentMails.unshift(mail);
+
+  if(isReportMail) state.flags.reportSent = true;
+  if(!state.crossUnlocked) state.crossUnlocked = true;
+
+  composeOpen = false;
+  saveState();
+  applyTheme();
+  renderMail();
+  renderNavDots();
+}
+
+function markMailRead(m){
+  if(m.kind === "intro"){
+    if(!state.introRead.includes(m.id)){
+      state.introRead.push(m.id);
+      if(allIntroRead()) state.sendUnlocked = true;
+      saveState();
+    }
+  }else if(m.kind === "sys" || m.kind === "sys2"){
+    const key = "A:__" + m.id;
+    if(!state.filesRead[key]){ state.filesRead[key] = true; saveState(); }
+  }else if(m.kind === "received"){
+    const rec = state.sentMails.find(x => x.id === m.id);
+    if(rec && !rec.read){ rec.read = true; saveState(); }
+  }
+}
+
+function nowLabel(){
+  const d = new Date();
+  return (state.timeline === "A" ? "现在 " : "过去 ") + d.toLocaleTimeString("zh-CN",{hour12:false});
+}
+
+// ---- 系统状态面板 ----
+function renderSystem(){
+  const f = state.flags;
+  mainEl.innerHTML = `
+    <div class="panel-title">系统状态</div>
+    <div class="flag-row"><span>A线已获取门禁密码</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>B线已解密事故报告</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>报告已寄往未来（触发结局线索）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>A线已查看监控录像</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>B线已解密私人日记</span><span class="flag-val ${f.decryptedDiary?"on":"off"}">${f.decryptedDiary?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>B线已查看值班室照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>【写信】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>双线穿越已解锁</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
+    <div class="hint">存档 / 读档在本作里被包装成「收发邮件」：写信 = 存档，读信 = 读档。<br>第一次写信会解锁双线穿越；在过去解密事故报告后再写一封信，会把线索寄给「现在」的自己，触发结局。</div>
+    <div style="margin-top:24px;">
+      <button class="action-btn" onclick="if(confirm('确定要重置全部进度吗？')){localStorage.removeItem('${STORAGE_KEY}');location.reload();}">重置存档</button>
+    </div>
+  `;
+}
+
+// ---- 终端 ----
+let termHistory = [];
+
+// 可解密文件配置表（供 decrypt 命令通用查找）
+const DECRYPT_TARGETS = {
+  "事故报告": {
+    password: "8341",
+    prereqFlag: "gotAccessCode",
+    prereqHint: "密码校验失败——你好像还不知道正确的密码是什么。（提示：去「现在」那条线查一下门禁记录）",
+    doneFlag: "decryptedReport",
+    successMsg: "解密成功。文件已生成：事故报告.txt",
+  },
+  "私人日记": {
+    password: "0426",
+    prereqFlag: "watchedVideo",
+    prereqHint: "密码校验失败——你好像还没看过什么能提示密码的东西。（提示：去「现在」那条线看看监控录像）",
+    doneFlag: "decryptedDiary",
+    successMsg: "解密成功。文件已生成：私人日记.txt",
+  },
+};
+
+function renderTerminal(){
+  mainEl.innerHTML = `
+    <div class="panel-title">终端 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+    <div id="term-log"></div>
+    <div class="term-input-row">
+      <span class="prompt">${state.timeline}:~$</span>
+      <input id="term-input" type="text" autocomplete="off" placeholder="输入 help 查看命令" />
+    </div>
+  `;
+  renderTermLog();
+  const input = $("#term-input");
+  input.focus();
+  input.addEventListener("keydown", e => {
+    if(e.key === "Enter"){
+      const cmd = input.value;
+      input.value = "";
+      runCommand(cmd);
+    }
+  });
+  if(termHistory.length === 0){
+    pushLog("欢迎使用 ECHO 共享终端。输入 <b>help</b> 查看可用命令。", "cmd-ok");
+  }
+}
+
+function renderTermLog(){
+  const log = $("#term-log");
+  if(!log) return;
+  log.innerHTML = termHistory.map(l => `<div class="${l.cls||""}">${l.text}</div>`).join("");
+  const mainBox = $("#main");
+  mainBox.scrollTop = mainBox.scrollHeight;
+}
+
+function pushLog(text, cls){
+  termHistory.push({text, cls});
+  renderTermLog();
+}
+
+function runCommand(raw){
+  const cmd = raw.trim();
+  if(!cmd) return;
+  pushLog(`<span class="cmd-echo">${state.timeline}:~$ ${escapeHtml(cmd)}</span>`);
+  const parts = cmd.split(/\s+/);
+  const verb = parts[0].toLowerCase();
+  const files = getFiles(state.timeline);
+
+  if(verb === "help"){
+    pushLog(
+`可用命令：
+  ls                     查看当前文件
+  cat &lt;文件名&gt;            阅读文件内容
+  decrypt &lt;文件名&gt; &lt;密码&gt;  解密加密文件（仅七天前线可用）
+  whoami                 核对当前账号身份
+  clear                  清空终端显示
+
+提示：写信 / 收信请前往左侧「邮件」面板；视频/图片类文件用 cat 只能看文字记录，完整画面请去「文件」面板查看。`, "cmd-ok");
+  }
+  else if(verb === "ls"){
+    pushLog(files.map(f => {
+      const icon = f.locked ? "🔒" : (f.mediaType === "video" ? "🎞" : f.mediaType === "image" ? "🖼" : "📄");
+      return `${icon} ${f.name}`;
+    }).join("\n"));
+  }
+  else if(verb === "cat"){
+    const name = parts.slice(1).join(" ");
+    const f = files.find(x => x.name === name);
+    if(!f){ pushLog(`找不到文件：${escapeHtml(name)}`, "cmd-err"); }
+    else if(f.locked){ pushLog(`文件已加密，无法直接查看：${escapeHtml(name)}`, "cmd-err"); }
+    else{
+      markFileRead(f);
+      pushLog(escapeHtml(f.content));
+      if(f.mediaType){
+        pushLog(`（提示：该文件包含${f.mediaType==="video"?"视频":"图片"}素材，去「文件」面板可以看到画面占位）`, "cmd-echo");
+      }
+      showQuip(f.quip || randomQuip("file"), f.mood || "normal");
+    }
+  }
+  else if(verb === "decrypt"){
+    if(state.timeline !== "B"){
+      pushLog("这台终端在「现在」这条线上没有可解密的文件。", "cmd-err");
+    }else{
+      const name = parts[1];
+      const code = parts[2];
+      const target = DECRYPT_TARGETS[name];
+      if(!name || !code){ pushLog("用法：decrypt <文件名> <四位密码>", "cmd-err"); }
+      else if(!target){ pushLog(`找不到可解密的文件：${escapeHtml(name)}`, "cmd-err"); }
+      else if(state.flags[target.doneFlag]){ pushLog(`该文件已经解密过了，用 cat ${name}.txt 查看。`, "cmd-ok"); }
+      else if(!state.flags[target.prereqFlag]){
+        pushLog(target.prereqHint, "cmd-err");
+        showQuip(randomQuip("decryptFail"), "fail");
+      }
+      else if(code === target.password){
+        state.flags[target.doneFlag] = true;
+        saveState();
+        pushLog(target.successMsg, "cmd-ok");
+        showQuip(randomQuip("decryptOk"), "ok");
+      }else{
+        pushLog("密码错误。", "cmd-err");
+        showQuip(randomQuip("decryptFail"), "fail");
+      }
+    }
+  }
+  else if(verb === "whoami"){
+    revealGlitchIdentity();
+  }
+  else if(verb === "clear"){
+    termHistory = [];
+    renderTermLog();
+  }
+  else{
+    pushLog(`未知命令：${escapeHtml(verb)}（输入 help 查看可用命令）`, "cmd-err");
+  }
+}
+
+// ---- 文字恐怖：账号身份核对故障文本（递进式文字腐蚀，参考"祖国文字"梗）----
+function revealGlitchIdentity(){
+  pushLog("正在核对账号身份……", "cmd-echo");
+  const lines = [
+    "请正确合理的使用祖国文字",
+    "请正蒛合理棏使用祖国文字",
+    "㑴正蒛合理棏使癕祖鐹文字",
+    "㑴鄭蒛和澧棏使癕祖国文湽",
+    "㑴鄭蒛穒澧棏贳癕顇鐹闦湽",
+  ];
+  lines.forEach((line, i) => {
+    setTimeout(() => {
+      pushLog(line, `glitch-l${i}`);
+      if(i === lines.length - 1){
+        setTimeout(() => {
+          pushLog("……账号信息核对失败，已忽略。", "cmd-err");
+          showQuip("好，系统开始文字乱码了，班味都不带这么邪门的。", "creepy");
+        }, 500);
+      }
+    }, i * 700);
+  });
+}
+
+// ---- 结局 ----
+function triggerEnding(){
+  if(state.flags.endingSeen) return;
+  state.flags.endingSeen = true;
+  saveState();
+  let extra = "";
+  if(state.flags.sawPhoto){
+    extra = "\n\n你后来才想明白，值班室照片里那个多出来的轮廓，可能就是隔着七天，正在读这封信的你自己。";
+  }
+  $("#ending-text").textContent =
+    "一台电脑，两个时间，一个共享的账号。\n你们隔着七天，用一封一封信，交换了真相。" + extra + "\n\n（ECHO 可玩骨架 Demo · 完）";
+  $("#ending").classList.add("show");
+}
+
+// ---- 左侧导航未读提示 ----
+function renderNavDots(){
+  const mailUnread = buildMailList(state.timeline).some(m => !m.locked && !m.read);
+  $$(".nav-item").forEach(n => {
+    if(n.dataset.app === "mail") n.classList.toggle("has-new", mailUnread);
+  });
+}
+
+// ---- 时钟 ----
+function tickClock(){
+  const d = new Date();
+  $("#clock").textContent = (state.timeline === "A" ? "REALTIME " : "T-7DAYS ") + d.toLocaleTimeString("zh-CN",{hour12:false});
+}
+setInterval(tickClock, 1000);
+
+// ---- 事件绑定 ----
+$("#tl-toggle-btn").addEventListener("click", toggleTimeline);
+$$(".nav-item").forEach(nav => nav.addEventListener("click", () => switchApp(nav.dataset.app)));
+
+// ---- 初始化 ----
+applyTheme();
+tickClock();
+renderApp(currentApp);
+renderNavDots();
+</script>
+</body>
+</html>
