@@ -16,7 +16,7 @@
     overflow:hidden;
   }
 
-  /* ===== 主题：现在(A线) = 绿色荧光屏 / 过去(B线) = 蓝色荧光屏 ===== */
+  /* ===== 主题：04-13(A线) = 绿色荧光屏 / 04-06(B线) = 蓝色荧光屏 ===== */
   body.theme-a{ --accent:#4dffb8; --accent-dim:#1f6b4d; --bg:#03100b; --glow:0 0 6px rgba(77,255,184,.55); }
   body.theme-b{ --accent:#4da8ff; --accent-dim:#1c4a7a; --bg:#020a14; --glow:0 0 6px rgba(77,168,255,.55); }
 
@@ -175,9 +175,10 @@
   }
   .quip-bar.show{transform:translateY(0);}
   .quip-avatar{
+    /* 头像先用纯黑占位，后续替换成正式立绘/头像图 */
     width:42px;height:42px;flex-shrink:0;border:1px solid var(--accent);border-radius:6px;
     display:flex;align-items:center;justify-content:center;font-size:20px;
-    background:rgba(255,255,255,.04);box-shadow:var(--glow);
+    background:#000;box-shadow:var(--glow);overflow:hidden;
   }
   .quip-content{flex:1;min-width:0;}
   .quip-name{font-size:10px;letter-spacing:2px;opacity:.55;margin-bottom:4px;}
@@ -215,9 +216,9 @@
 <div id="crt"><div id="screen">
 
   <div id="topbar">
-    <div class="title">ECHO · 存档交换<small id="title-sub">SHARED_TERMINAL // 七天前 · 值班记录</small></div>
+    <div class="title">ECHO · 存档交换<small id="title-sub">SHARED_TERMINAL // 2086年04月06日 · 值班记录</small></div>
     <div id="tl-control">
-      <span id="tl-locked-hint" class="locked-hint">［仍锁定在过去］把该读的邮件都读完，也许能找到出路……</span>
+      <span id="tl-locked-hint" class="locked-hint">［日期仍锁定在 04-06］把该读的邮件都读完，也许能找到出路……</span>
       <button id="tl-toggle-btn" class="tl-toggle" style="display:none;"></button>
     </div>
     <div id="clock"></div>
@@ -232,7 +233,7 @@
     </div>
     <div id="main"></div>
     <div id="quip-bar" class="quip-bar">
-      <div class="quip-avatar" id="quip-avatar">😐</div>
+      <div class="quip-avatar" id="quip-avatar"></div>
       <div class="quip-content">
         <div class="quip-name">值班的我 · 吐槽中</div>
         <div class="quip-text" id="quip-text"></div>
@@ -251,37 +252,45 @@
 
 <script>
 /* =========================================================
-   ECHO · 存档交换  —— 双线终端悬疑 · 可玩骨架 Demo (v2)
-   方案四(复古终端UI) + 方案五(双主角存档跨线) 结合体
+   ECHO · 存档交换  —— 双日期终端悬疑 · 可玩骨架 Demo (v3)
+   方案四(复古终端UI) + 方案五(双主角存档跨日期) 结合体
    本版改动：
-   1) "存档/读档"不再用单独的留言板，而是包装成「收发邮件」。
-   2) 顶部不再是两个时间线按钮，改为单个"切换"按钮，
-      且在剧情解锁前完全隐藏/禁用——玩家只能先待在过去(B线)。
-   3) 过去(B线) = 蓝色 UI；现在(A线) = 绿色 UI。
-   4) 流程：先在过去顺序读完引导邮件 → 最后一封邮件提示"写信寄给未来"
-      → 在此之前【写信】按钮一直隐藏 → 写下第一封信后，
-      才真正解锁"双线穿越"玩法（顶部切换按钮出现）。
+   1) 不再用"过去/未来"这类字眼，时间线统一换成具体日期：
+      04-06（B线）/ 04-13（A线），二者正好相隔七天。
+   2) "存档/读档"仍包装成「收发邮件」，但玩家写的东西被包装成
+      一份"值班报告/交接记录"——而不是直白地"写信给未来的自己"，
+      淡化穿越感，让诡异感来自"日期对不上"这个细节，而不是设定本身。
+   3) 04-06（B线）= 蓝色 UI；04-13（A线）= 绿色 UI。
+   4) 流程：先在 04-06 顺序读完引导邮件 → 最后一封邮件提示
+      "补一份报告存进系统" → 在此之前【撰写报告】按钮一直隐藏 →
+      提交第一份报告后，才真正解锁"跨日期查看"玩法（顶部切换按钮出现）。
    ========================================================= */
 
 // ---------- 状态（localStorage 持久化，方便调试/重开） ----------
 const STORAGE_KEY = "echo_save_demo_v2";
 
+// 时间线对应的具体日期（相隔整七天，替代"过去/未来"这类字眼）
+const DATE_B_SHORT = "04-06";
+const DATE_A_SHORT = "04-13";
+const DATE_B_FULL = "2086年04月06日";
+const DATE_A_FULL = "2086年04月13日";
+
 function defaultState(){
   return {
-    timeline: "B",            // 开局固定停留在"过去"
+    timeline: "B",            // 开局固定停留在 04-06 这条日期线
     introRead: [],            // 已读的引导邮件 id 列表（顺序解锁）
-    sendUnlocked: false,      // 是否已解锁【写信】入口（读完最后一封引导邮件后为 true）
-    crossUnlocked: false,     // 是否已解锁双线穿越（发出第一封信后为 true）
+    sendUnlocked: false,      // 是否已解锁【撰写报告】入口（读完最后一封引导邮件后为 true）
+    crossUnlocked: false,     // 是否已解锁跨日期查看（提交第一份报告后为 true）
     flags: {
-      gotAccessCode: false,     // A线是否已查看门禁记录，得知密码
-      decryptedReport: false,   // B线是否已解密事故报告
-      reportSent: false,        // 事故报告内容是否已被"寄给未来"（触发结局线索）
+      gotAccessCode: false,     // A线(04-13)是否已查看门禁记录，得知密码
+      decryptedReport: false,   // B线(04-06)是否已解密事故报告
+      reportSent: false,        // 事故报告内容是否已跨日期归档到 04-13（触发结局线索）
       endingSeen: false,
-      watchedVideo: false,      // A线是否已看过监控录像（获得私人日记密码）
-      decryptedDiary: false,    // B线是否已解密私人日记
-      sawPhoto: false,          // B线是否已查看值班室照片
+      watchedVideo: false,      // A线(04-13)是否已看过监控录像（获得私人日记密码）
+      decryptedDiary: false,    // B线(04-06)是否已解密私人日记
+      sawPhoto: false,          // B线(04-06)是否已查看值班室照片
     },
-    sentMails: [],   // 双线之间来回的信 {fromTl,toTl,subject,body,time,isEnding,read}
+    sentMails: [],   // 双日期之间来回的报告 {fromTl,toTl,subject,body,time,isEnding,read}
     filesRead: {},   // 已读文件 key: `${tl}:${name}`
   };
 }
@@ -305,31 +314,31 @@ function saveState(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-// ---------- 引导邮件链（仅 B 线 / 过去，顺序解锁） ----------
+// ---------- 引导邮件链（仅 B 线 / 04-06，顺序解锁） ----------
 const INTRO_MAILS = [
   {
     id:"intro1", from:"负责人", time:"22:10",
     subject:"今晚交接",
     body:"今晚培育室那批样本的温控你盯紧点，出了问题算你的。\n对了，这台终端的账号是共用的，别乱改密码，值班表上后面还有人要用。",
-    quip:"共用账号是吧，责任共用，功劳没有，懂了。", mood:"normal"
+    quip:"共用账号是吧？合着责任是众筹的，功劳是限量款，只有我抢不到。", mood:"normal"
   },
   {
     id:"intro2", from:"系统", time:"23:15",
     subject:"日常报告已生成",
     body:"今日值班日常报告已归档，如需查阅请转到「文件」面板查看。\n（本邮件为自动发送，请勿回复）",
-    quip:"自动发送，连个署名都懒得给，AI都比我勤快。", mood:"normal"
+    quip:"自动发送、无需回复——好一个不用发加班费的“同事”。", mood:"normal"
   },
   {
     id:"intro3", from:"未知发件人", time:"23:48",
     subject:"如果你看到这封信",
     body:"我不知道这封信会不会有人看到。\n\n如果有——说明这个账号还在被使用，说明这台终端还醒着。\n那就好。至少不是只有我一个人守着它。",
-    quip:"陌生来信，第一反应是广告——结果比广告还玄乎。", mood:"creepy"
+    quip:"陌生来信，我第一反应是“又是贷款广告”——结果这文案玄乎得能拿奖。", mood:"creepy"
   },
   {
     id:"intro4", from:"我自己", time:"23:55",
     subject:"最后想说的话",
-    body:"培育室那边的事情有点不对劲，我可能没办法把这些话当面告诉任何人了。\n\n我翻过这台终端一些奇怪的系统日志——上面的时间戳，是“未来”的。\n\n如果这是真的，那我想试着给“未来的自己”写一封信，把眼下发生的事留个记号。\n\n……邮件面板下面应该会出现【写一封信】的入口了，去试试吧。",
-    quip:"给未来的自己写信？行吧，反正加班费也不会因为跨时间线就翻倍。", mood:"creepy"
+    body:"培育室那边的事情有点不对劲，我可能没办法把这些话当面告诉任何人了。\n\n我翻到这台终端里一些奇怪的系统日志——上面盖的日期，是 04月13日。可值班表上明明写着，今天是 04月06日。\n\n如果这台终端的记录真能被写进那一天，那我想干脆顺手补一份说得过去的《值班报告》，混在系统日志里存档——就当留个记号，顺便也给自己找个台阶下。\n\n……邮件面板下面应该会出现【撰写报告】的入口了，去试试吧。",
+    quip:"写份报告应付了事？这套路我熟，糊弄学我可是拿过职业资格证的。", mood:"creepy"
   },
 ];
 
@@ -346,14 +355,14 @@ function getFiles(tl){
   if(tl === "A"){
     return [
       {
-        name: "值班日志_现在.txt", locked:false,
-        quip:"我的笔迹，我不认。", mood:"normal",
-        content: "23:52\n接手夜班没多久，邮箱里忽然多出一封陌生来信，落款是「我自己」。\n\n值班表上写着七天前也有人用这台机器，账号还是我的这个——\n但我从没上过那天的班。"
+        name: "值班日志_04-13.txt", locked:false,
+        quip:"我的笔迹，我不认——甩锅的第一步，先否认。", mood:"normal",
+        content: "23:52\n接手夜班没多久，邮箱里忽然多出一封陌生来信，落款是「我自己」。\n\n值班表上写着 04月06日 也有人用过这台机器，账号还是我的这个——\n但我从没上过那天的班。"
       },
       {
         name: "门禁记录.log", locked:false,
-        quip:"卡号后面没再出现过——好家伙，人间蒸发是吧。", mood:"creepy",
-        content: "[系统日志 · 门禁]\n七天前 23:47  卡号 ****8341  进入 西区-培育室\n七天前 23:51  卡号 ****8341  离开 西区-培育室\n(该卡号此后未再出现于任何记录)",
+        quip:"卡号从那天起再没刷过——好家伙，请假请到失踪，这假条我给满分。", mood:"creepy",
+        content: "[系统日志 · 门禁]\n04月06日 23:47  卡号 ****8341  进入 西区-培育室\n04月06日 23:51  卡号 ****8341  离开 西区-培育室\n(该卡号此后未再出现于任何记录)",
         onRead(){ state.flags.gotAccessCode = true; }
       },
       {
@@ -389,13 +398,13 @@ function getFiles(tl){
         quip: state.flags.decryptedReport ? "操作账号是我自己……行，这锅我先背着，反正也不是头一次。" : undefined,
         mood: state.flags.decryptedReport ? "creepy" : undefined,
         content: state.flags.decryptedReport
-          ? "[已解密]\n培育室的恒温系统被人为调高了整整六度。\n设备日志显示操作时间是 23:49，操作账号——是我自己的账号。\n\n我不记得自己做过这件事。\n\n如果以后还有人用这台终端，也许该把这份记录寄给未来的自己——邮件面板里应该能做到。"
+          ? "[已解密]\n培育室的恒温系统被人为调高了整整六度。\n设备日志显示操作时间是 23:49，操作账号——是我自己的账号。\n\n我不记得自己做过这件事。\n\n如果以后还有人用这台终端，也许该把这份记录悄悄补进 04-13 那天的系统日志里——邮件面板应该能做到。"
           : "[已加密] 使用命令解密： decrypt 事故报告 <四位密码>"
       },
       {
         name: state.flags.decryptedDiary ? "私人日记.txt" : "私人日记.enc",
         locked: !state.flags.decryptedDiary,
-        quip: state.flags.decryptedDiary ? "写日记这习惯，原来七天前的我也有，肉麻死了。" : "又是一个加密文件，合着这破电脑就没几个文件能直接看的。",
+        quip: state.flags.decryptedDiary ? "写日记这习惯——好家伙，原来我这么早就开始搞“打工人碎碎念”文学了，肉麻死了。" : "又是一个加密文件，合着这破电脑就没几个文件能直接看的。",
         mood: state.flags.decryptedDiary ? "creepy" : "normal",
         content: state.flags.decryptedDiary
           ? "[已解密]\n11月的某天，我开始怀疑这台终端不止我一个人在用。\n\n有些文件我明明没建过，却带着我的账号水印；有些操作日志的时间，是我睡着时的时间。\n\n今天我把培育室的门禁密码写在了监控室的便签上——不是我疏忽，是我故意的。\n\n如果有一天『另一个我』看到了这份日记，希望TA明白：\n这台终端记得的事，比我们任何一个人都多。"
@@ -422,8 +431,8 @@ const mainEl = $("#main");
 function applyTheme(){
   document.body.className = state.timeline === "A" ? "theme-a" : "theme-b";
   $("#title-sub").textContent = state.timeline === "A"
-    ? "SHARED_TERMINAL // 现在 · 值班记录"
-    : "SHARED_TERMINAL // 七天前 · 值班记录";
+    ? "SHARED_TERMINAL // " + DATE_A_FULL + " · 值班记录"
+    : "SHARED_TERMINAL // " + DATE_B_FULL + " · 值班记录";
   renderTopControl();
 }
 
@@ -433,7 +442,7 @@ function renderTopControl(){
   if(state.crossUnlocked){
     hint.style.display = "none";
     btn.style.display = "inline-block";
-    btn.textContent = state.timeline === "A" ? "◀ 穿越回 · 七天前" : "穿越到 · 现在 ▶";
+    btn.textContent = state.timeline === "A" ? ("◀ 切换至 · " + DATE_B_SHORT) : ("切换至 · " + DATE_A_SHORT + " ▶");
   }else{
     hint.style.display = "inline-block";
     btn.style.display = "none";
@@ -472,7 +481,7 @@ function renderFiles(fileToOpen){
     if(f && !f.locked){
       markFileRead(f);
       mainEl.innerHTML = `
-        <div class="panel-title">文件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+        <div class="panel-title">文件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
         <span class="back-link" onclick="renderFiles()">&laquo; 返回文件列表</span>
         ${renderMediaBox(f)}
         <div class="doc-view">${escapeHtml(f.content)}</div>
@@ -482,7 +491,7 @@ function renderFiles(fileToOpen){
     }
   }
   mainEl.innerHTML = `
-    <div class="panel-title">文件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+    <div class="panel-title">文件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
     ${files.map(f => `
       <div class="file-row ${f.locked?"locked":""}" onclick="${f.locked?"quipLockedFile()":`renderFiles('${f.name}')`}">
         <span class="icon">${f.locked ? "🔒" : (f.mediaType === "video" ? "🎞" : f.mediaType === "image" ? "🖼" : "📄")}</span>
@@ -524,11 +533,11 @@ function escapeHtml(str){
 
 // ---- 吐槽独白系统：点击邮件/文件/解谜物品时，主角（社畜吐槽役）发表评论 ----
 const QUIP_POOL = {
-  mail: ["已读。班味扑面，先撑住。","邮件而已，我心态稳得很。","嗯，收到，继续搬。","这年头连邮件都不让人消停。"],
-  file: ["报表看多了，这种文档不算什么。","行吧，字挺多，重点我记下了。","继续念经式阅读中……"],
+  mail: ["已读。扑面而来的班味，赛博加班的既视感。","一封邮件而已，慌什么，我经历过的甲方需求比这瘆人多了。","收到，继续搬砖，砖比鬼实在。","下班后还发邮件——好家伙，连闹鬼都比我老板会挑时间。"],
+  file: ["报表见多了，这种文档吓不到我，顶多算轻度惊悚。","字是挺多，但准确率比周报还低，凑合看。","继续用扫材料的速度扫灵异现象，五秒一页，绝不停留。"],
   fileLocked: ["加密？合着连销毁个文件都要卷密码。","锁上了，跟我当年被锁工位一个味儿。"],
-  decryptFail: ["密码不对，白激动一场，难绷。"],
-  decryptOk: ["解开了……有点后悔，但已经晚了。"],
+  decryptFail: ["密码不对——白紧张一场，血压算是白升了。"],
+  decryptOk: ["解开了。好奇心这东西，跟加班一样，一上头就停不下来。"],
 };
 let quipTimer = null;
 function showQuip(text, mood){
@@ -537,7 +546,8 @@ function showQuip(text, mood){
   const avatar = $("#quip-avatar");
   if(!bar) return;
   $("#quip-text").textContent = text;
-  avatar.textContent = mood === "creepy" ? "😑" : mood === "ok" ? "😮‍💨" : mood === "fail" ? "😒" : "😐";
+  // 头像先用纯黑图占位，仅通过描边颜色区分情绪，不再用emoji
+  avatar.style.borderColor = mood === "creepy" ? "#ff4d6d" : mood === "fail" ? "#ff9a5a" : "var(--accent)";
   bar.classList.add("show");
   clearTimeout(quipTimer);
   quipTimer = setTimeout(() => bar.classList.remove("show"), 7000);
@@ -586,9 +596,9 @@ function buildMailList(tl){
   state.sentMails
     .filter(m => m.toTl === tl)
     .forEach(m => list.push({
-      kind:"received", id:m.id, from: m.fromTl === "A" ? "来自「现在」的自己" : "来自「七天前」的自己",
+      kind:"received", id:m.id, from: m.fromTl === "A" ? ("来自 " + DATE_A_SHORT + " 的记录") : ("来自 " + DATE_B_SHORT + " 的记录"),
       time:m.time, subject:m.subject, body:m.body, locked:false, read:m.read, isEnding:m.isEnding,
-      quip: m.isEnding ? "行吧，寄都寄了，看看吧。" : undefined,
+      quip: m.isEnding ? "行吧，报告都交了，看看吧。" : undefined,
     }));
   return list;
 }
@@ -601,7 +611,7 @@ function renderMail(openId){
     if(m && !m.locked){
       markMailRead(m);
       mainEl.innerHTML = `
-        <div class="panel-title">邮件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+        <div class="panel-title">邮件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
         <span class="back-link" onclick="renderMail()">&laquo; 返回收件箱</span>
         <div class="mail-detail">
           <div class="subject">${escapeHtml(m.subject)}</div>
@@ -617,7 +627,7 @@ function renderMail(openId){
   }
 
   mainEl.innerHTML = `
-    <div class="panel-title">邮件 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+    <div class="panel-title">邮件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
     ${list.map(m => `
       <div class="mail-row ${m.locked?"locked":""}" onclick="${m.locked?"quipLockedMail()":`renderMail('${m.id}')`}">
         <span class="unread-dot ${m.read?"hidden":""}"></span>
@@ -642,18 +652,18 @@ function renderComposeSection(){
   if(!composeOpen){
     return `
       <div class="compose-toggle-wrap">
-        <button class="action-btn" onclick="openCompose()">✉ 写一封信寄给${state.timeline === "B" ? "未来" : "过去"}的自己</button>
+        <button class="action-btn" onclick="openCompose()">✉ 补写一份值班报告</button>
       </div>
     `;
   }
   const draft = defaultDraft();
   return `
     <div class="compose-box">
-      <div class="compose-label">寄给：${state.timeline === "B" ? "「现在」的自己" : "「七天前」的自己"}</div>
+      <div class="compose-label">存档目标：${state.timeline === "B" ? DATE_A_SHORT : DATE_B_SHORT}</div>
       <textarea id="compose-text">${escapeHtml(draft)}</textarea>
       <div class="compose-actions">
         <button class="action-btn ghost" onclick="closeCompose()">取消</button>
-        <button class="action-btn" onclick="sendComposedMail()">发送</button>
+        <button class="action-btn" onclick="sendComposedMail()">提交</button>
       </div>
     </div>
   `;
@@ -661,16 +671,16 @@ function renderComposeSection(){
 
 function defaultDraft(){
   if(state.timeline === "B" && state.flags.decryptedReport && !state.flags.reportSent){
-    let base = "我查到了。培育室的恒温系统是被人为调高的，操作账号是我自己的——但我不记得做过这件事。\n如果你看到这封信，请一定要把这份记录留下来。";
+    let base = "我查到了。培育室的恒温系统是被人为调高的，操作账号是我自己的——但我不记得做过这件事。\n如果你看到这份报告，请一定要把这份记录留下来。";
     if(state.flags.decryptedDiary){
       base += "\n\n我还翻到了一篇没署名的日记，写日记的人也是“我”。TA说这台终端记得的事，比我们任何一个人都多。";
     }
     return base;
   }
   if(state.timeline === "B" && !state.crossUnlocked){
-    return "如果这封信真的能寄到“未来”——那我想说，我可能遇到麻烦了。\n请帮我看看这台终端里的记录，好吗？";
+    return "如果这份报告真能被系统错误地存进 " + DATE_A_SHORT + " 那天——那我想说，我可能遇到麻烦了。\n请帮我看看这台终端里的记录，好吗？";
   }
-  return "我收到你的信了。这边一切都还算正常，我会继续查下去的。";
+  return "报告收到了。这边一切都还算正常，我会继续查下去的。";
 }
 
 function openCompose(){ composeOpen = true; renderMail(); }
@@ -689,7 +699,7 @@ function sendComposedMail(){
   const mail = {
     id: "m" + Date.now(),
     fromTl, toTl,
-    subject: isReportMail ? "观测数据" : (firstTime ? "寄给会看到这封信的你" : "一封回信"),
+    subject: isReportMail ? "观测数据" : (firstTime ? "值班报告存档" : "补充记录"),
     body: text,
     time: nowLabel(),
     isEnding: isReportMail,
@@ -725,7 +735,7 @@ function markMailRead(m){
 
 function nowLabel(){
   const d = new Date();
-  return (state.timeline === "A" ? "现在 " : "过去 ") + d.toLocaleTimeString("zh-CN",{hour12:false});
+  return (state.timeline === "A" ? DATE_A_SHORT + " " : DATE_B_SHORT + " ") + d.toLocaleTimeString("zh-CN",{hour12:false});
 }
 
 // ---- 系统状态面板 ----
@@ -735,13 +745,13 @@ function renderSystem(){
     <div class="panel-title">系统状态</div>
     <div class="flag-row"><span>A线已获取门禁密码</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
     <div class="flag-row"><span>B线已解密事故报告</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>报告已寄往未来（触发结局线索）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>报告已跨日期归档（触发结局线索）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"YES":"NO"}</span></div>
     <div class="flag-row"><span>A线已查看监控录像</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
     <div class="flag-row"><span>B线已解密私人日记</span><span class="flag-val ${f.decryptedDiary?"on":"off"}">${f.decryptedDiary?"YES":"NO"}</span></div>
     <div class="flag-row"><span>B线已查看值班室照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>【写信】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>双线穿越已解锁</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
-    <div class="hint">存档 / 读档在本作里被包装成「收发邮件」：写信 = 存档，读信 = 读档。<br>第一次写信会解锁双线穿越；在过去解密事故报告后再写一封信，会把线索寄给「现在」的自己，触发结局。</div>
+    <div class="flag-row"><span>【撰写报告】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>双日期切换已解锁</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
+    <div class="hint">存档 / 读档在本作里被包装成「收发邮件」：撰写报告 = 存档，查阅邮件 = 读档。<br>第一次提交报告会解锁双日期切换；在 ${DATE_B_SHORT} 解密事故报告后再补一份报告，会把线索归档进 ${DATE_A_SHORT}，触发结局。</div>
     <div style="margin-top:24px;">
       <button class="action-btn" onclick="if(confirm('确定要重置全部进度吗？')){localStorage.removeItem('${STORAGE_KEY}');location.reload();}">重置存档</button>
     </div>
@@ -756,14 +766,14 @@ const DECRYPT_TARGETS = {
   "事故报告": {
     password: "8341",
     prereqFlag: "gotAccessCode",
-    prereqHint: "密码校验失败——你好像还不知道正确的密码是什么。（提示：去「现在」那条线查一下门禁记录）",
+    prereqHint: "密码校验失败——你好像还不知道正确的密码是什么。（提示：去 " + DATE_A_SHORT + " 那条日期线查一下门禁记录）",
     doneFlag: "decryptedReport",
     successMsg: "解密成功。文件已生成：事故报告.txt",
   },
   "私人日记": {
     password: "0426",
     prereqFlag: "watchedVideo",
-    prereqHint: "密码校验失败——你好像还没看过什么能提示密码的东西。（提示：去「现在」那条线看看监控录像）",
+    prereqHint: "密码校验失败——你好像还没看过什么能提示密码的东西。（提示：去 " + DATE_A_SHORT + " 那条日期线看看监控录像）",
     doneFlag: "decryptedDiary",
     successMsg: "解密成功。文件已生成：私人日记.txt",
   },
@@ -771,7 +781,7 @@ const DECRYPT_TARGETS = {
 
 function renderTerminal(){
   mainEl.innerHTML = `
-    <div class="panel-title">终端 // ${state.timeline === "A" ? "现在" : "七天前"}</div>
+    <div class="panel-title">终端 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
     <div id="term-log"></div>
     <div class="term-input-row">
       <span class="prompt">${state.timeline}:~$</span>
@@ -819,11 +829,11 @@ function runCommand(raw){
 `可用命令：
   ls                     查看当前文件
   cat &lt;文件名&gt;            阅读文件内容
-  decrypt &lt;文件名&gt; &lt;密码&gt;  解密加密文件（仅七天前线可用）
+  decrypt &lt;文件名&gt; &lt;密码&gt;  解密加密文件（仅 ${DATE_B_SHORT} 那条日期线可用）
   whoami                 核对当前账号身份
   clear                  清空终端显示
 
-提示：写信 / 收信请前往左侧「邮件」面板；视频/图片类文件用 cat 只能看文字记录，完整画面请去「文件」面板查看。`, "cmd-ok");
+提示：撰写报告 / 查阅邮件请前往左侧「邮件」面板；视频/图片类文件用 cat 只能看文字记录，完整画面请去「文件」面板查看。`, "cmd-ok");
   }
   else if(verb === "ls"){
     pushLog(files.map(f => {
@@ -847,7 +857,7 @@ function runCommand(raw){
   }
   else if(verb === "decrypt"){
     if(state.timeline !== "B"){
-      pushLog("这台终端在「现在」这条线上没有可解密的文件。", "cmd-err");
+      pushLog("这台终端在 " + DATE_A_SHORT + " 这条日期线上没有可解密的文件。", "cmd-err");
     }else{
       const name = parts[1];
       const code = parts[2];
@@ -912,10 +922,10 @@ function triggerEnding(){
   saveState();
   let extra = "";
   if(state.flags.sawPhoto){
-    extra = "\n\n你后来才想明白，值班室照片里那个多出来的轮廓，可能就是隔着七天，正在读这封信的你自己。";
+    extra = "\n\n后来我才想明白，值班室照片里那个多出来的轮廓，可能就是隔着七天，正在读这份记录的另一个我。";
   }
   $("#ending-text").textContent =
-    "一台电脑，两个时间，一个共享的账号。\n你们隔着七天，用一封一封信，交换了真相。" + extra + "\n\n（ECHO 可玩骨架 Demo · 完）";
+    "一台电脑，两个日期，一个共享的账号。\n我们隔着七天，用一份又一份“值班报告”，拼凑出了真相。" + extra + "\n\n（ECHO 可玩骨架 Demo · 完）";
   $("#ending").classList.add("show");
 }
 
@@ -930,7 +940,7 @@ function renderNavDots(){
 // ---- 时钟 ----
 function tickClock(){
   const d = new Date();
-  $("#clock").textContent = (state.timeline === "A" ? "REALTIME " : "T-7DAYS ") + d.toLocaleTimeString("zh-CN",{hour12:false});
+  $("#clock").textContent = (state.timeline === "A" ? "LOG@" + DATE_A_SHORT + " " : "LOG@" + DATE_B_SHORT + " ") + d.toLocaleTimeString("zh-CN",{hour12:false});
 }
 setInterval(tickClock, 1000);
 
