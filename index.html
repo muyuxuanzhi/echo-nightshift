@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ECHO · 存档交换</title>
+<title>镜中来客 · 苔丝与反钟镇</title>
 <style>
   :root{
     --scan-op:.06;
@@ -16,7 +16,7 @@
     overflow:hidden;
   }
 
-  /* ===== 主题：04-13(A线) = 绿色荧光屏 / 04-06(B线) = 蓝色荧光屏 ===== */
+  /* ===== 主题：阁楼(苔丝·现在) = 绿色荧光屏 / 反钟镇(格雷·永远的六点) = 蓝色荧光屏 ===== */
   body.theme-a{ --accent:#4dffb8; --accent-dim:#1f6b4d; --bg:#03100b; --glow:0 0 6px rgba(77,255,184,.55); }
   body.theme-b{ --accent:#4da8ff; --accent-dim:#1c4a7a; --bg:#020a14; --glow:0 0 6px rgba(77,168,255,.55); }
 
@@ -84,7 +84,7 @@
 
   .panel-title{font-size:13px;letter-spacing:3px;opacity:.7;margin-bottom:14px;border-bottom:1px dashed var(--accent-dim);padding-bottom:8px;}
 
-  /* 文件列表 */
+  /* 物件列表 */
   .file-row{
     display:flex;align-items:center;gap:10px;padding:8px 10px;cursor:pointer;
     border:1px solid transparent;font-size:13px;
@@ -103,7 +103,7 @@
   .back-link{cursor:pointer;opacity:.7;font-size:12px;margin-bottom:10px;display:inline-block;}
   .back-link:hover{opacity:1;}
 
-  /* 邮件（存档/读档的展示层） */
+  /* 书信（写信/看信的展示层） */
   .mail-row{
     display:flex;align-items:center;gap:10px;padding:10px 12px;cursor:pointer;
     border:1px solid transparent;border-bottom:1px solid var(--accent-dim);font-size:13px;
@@ -130,7 +130,7 @@
   }
   .compose-actions{display:flex;gap:10px;margin-top:10px;justify-content:flex-end;}
 
-  /* 终端 */
+  /* 镜语（终端） */
   #term-log{font-size:13px;line-height:1.8;white-space:pre-wrap;margin-bottom:8px;}
   #term-log .cmd-echo{opacity:.55;}
   #term-log .cmd-err{color:#ff6767;}
@@ -186,7 +186,7 @@
   .quip-close{flex-shrink:0;cursor:pointer;opacity:.45;font-size:12px;padding:2px 4px;}
   .quip-close:hover{opacity:.9;}
 
-  /* ===== 文字恐怖：终端故障文本递进腐蚀效果 ===== */
+  /* ===== 记忆倒着长：文字递进"想不起来"效果 ===== */
   .glitch-l0{opacity:.95;}
   .glitch-l1{opacity:.88;}
   .glitch-l2{opacity:.8;letter-spacing:.5px;}
@@ -216,9 +216,9 @@
 <div id="crt"><div id="screen">
 
   <div id="topbar">
-    <div class="title">ECHO · 存档交换<small id="title-sub">SHARED_TERMINAL // 2086年04月06日 · 值班记录</small></div>
+    <div class="title">镜中来客 · 苔丝与反钟镇<small id="title-sub">MIRROR_LINK // 反钟镇 · 永远的下午六点</small></div>
     <div id="tl-control">
-      <span id="tl-locked-hint" class="locked-hint">［日期仍锁定在 04-06］把该读的邮件都读完，也许能找到出路……</span>
+      <span id="tl-locked-hint" class="locked-hint">［镜面只映出反钟镇］把该读的信都读完，说不定镜子会展示更多……</span>
       <button id="tl-toggle-btn" class="tl-toggle" style="display:none;"></button>
     </div>
     <div id="clock"></div>
@@ -226,16 +226,16 @@
 
   <div id="body">
     <div id="nav">
-      <div class="nav-item active" data-app="terminal"><span class="dot"></span>终端</div>
-      <div class="nav-item" data-app="files"><span class="dot"></span>文件</div>
-      <div class="nav-item" data-app="mail"><span class="dot"></span>邮件</div>
-      <div class="nav-item" data-app="system"><span class="dot"></span>系统状态</div>
+      <div class="nav-item active" data-app="terminal"><span class="dot"></span>镜语</div>
+      <div class="nav-item" data-app="files"><span class="dot"></span>物件</div>
+      <div class="nav-item" data-app="mail"><span class="dot"></span>书信</div>
+      <div class="nav-item" data-app="system"><span class="dot"></span>镜面状态</div>
     </div>
     <div id="main"></div>
     <div id="quip-bar" class="quip-bar">
       <div class="quip-avatar" id="quip-avatar"></div>
       <div class="quip-content">
-        <div class="quip-name">值班的我 · 吐槽中</div>
+        <div class="quip-name">镜子这头的我 · 碎碎念</div>
         <div class="quip-text" id="quip-text"></div>
       </div>
       <div class="quip-close" onclick="hideQuip()">✕</div>
@@ -245,53 +245,52 @@
 </div></div>
 
 <div id="ending">
-  <h1>ECHO_END</h1>
+  <h1>MIRROR · END</h1>
   <p id="ending-text"></p>
   <button class="action-btn" onclick="location.reload()">重新开始</button>
 </div>
 
 <script>
 /* =========================================================
-   ECHO · 存档交换  —— 双日期终端悬疑 · 可玩骨架 Demo (v3)
-   方案四(复古终端UI) + 方案五(双主角存档跨日期) 结合体
-   本版改动：
-   1) 不再用"过去/未来"这类字眼，时间线统一换成具体日期：
-      04-06（B线）/ 04-13（A线），二者正好相隔七天。
-   2) "存档/读档"仍包装成「收发邮件」，但玩家写的东西被包装成
-      一份"值班报告/交接记录"——而不是直白地"写信给未来的自己"，
-      淡化穿越感，让诡异感来自"日期对不上"这个细节，而不是设定本身。
-   3) 04-06（B线）= 蓝色 UI；04-13（A线）= 绿色 UI。
-   4) 流程：先在 04-06 顺序读完引导邮件 → 最后一封邮件提示
-      "补一份报告存进系统" → 在此之前【撰写报告】按钮一直隐藏 →
-      提交第一份报告后，才真正解锁"跨日期查看"玩法（顶部切换按钮出现）。
+   镜中来客 · 苔丝与反钟镇 —— 爱丽丝式双世界通信 · 可玩骨架 Demo (v1)
+   在"双线终端悬疑"骨架基础上，替换全部剧情文本与部分UI文案，
+   把惊悚基调改写成爱丽丝式的梦幻荒诞：
+   1) 两条"时间线"变成两个世界：反钟镇（格雷 · 记忆倒着长）
+      与苔丝的阁楼（现在）。
+   2) "存档/读档"仍包装成收发文字，但改叫「写信 / 看信」，
+      对应故事里"对着镜子写字，等雾气显字回信"的设定。
+   3) 反钟镇 = 蓝色 UI（默认起始）；苔丝的阁楼 = 绿色 UI。
+   4) 玩法结构与原骨架一致：读完格雷的引导信 → 解锁【写一段话】→
+      两边互相提供解谜数字 → 打开两件上锁的物件 →
+      格雷把真相写信投出 → 触发结局。
    ========================================================= */
 
 // ---------- 状态（localStorage 持久化，方便调试/重开） ----------
-const STORAGE_KEY = "echo_save_demo_v2";
+const STORAGE_KEY = "mirror_visitor_save_v1";
 
-// 时间线对应的具体日期（相隔整七天，替代"过去/未来"这类字眼）
-const DATE_B_SHORT = "04-06";
-const DATE_A_SHORT = "04-13";
-const DATE_B_FULL = "2086年04月06日";
-const DATE_A_FULL = "2086年04月13日";
+// 两个世界的名字（原方案里"相隔七天的两个日期"，在这里换成"镜子两端的两个世界"）
+const DATE_B_SHORT = "反钟镇";
+const DATE_A_SHORT = "阁楼";
+const DATE_B_FULL = "反钟镇 · 永远的下午六点";
+const DATE_A_FULL = "苔丝的阁楼 · 现在";
 
 function defaultState(){
   return {
-    timeline: "B",            // 开局固定停留在 04-06 这条日期线
-    introRead: [],            // 已读的引导邮件 id 列表（顺序解锁）
-    sendUnlocked: false,      // 是否已解锁【撰写报告】入口（读完最后一封引导邮件后为 true）
-    crossUnlocked: false,     // 是否已解锁跨日期查看（提交第一份报告后为 true）
+    timeline: "B",            // 开局固定停留在反钟镇（格雷）这一侧
+    introRead: [],            // 已读的引导信 id 列表（顺序解锁）
+    sendUnlocked: false,      // 是否已解锁【写一段话】入口（读完最后一封引导信后为 true）
+    crossUnlocked: false,     // 是否已解锁镜子两端互看（第一次投信后为 true）
     flags: {
-      gotAccessCode: false,     // A线(04-13)是否已查看门禁记录，得知密码
-      decryptedReport: false,   // B线(04-06)是否已解密事故报告
-      reportSent: false,        // 事故报告内容是否已跨日期归档到 04-13（触发结局线索）
+      gotAccessCode: false,     // 苔丝（阁楼）是否已看过旧怀表说明卡，得到数字
+      decryptedReport: false,   // 格雷（反钟镇）是否已打开"争执记录"
+      reportSent: false,        // 真相是否已经写信投过镜子（触发结局线索）
       endingSeen: false,
-      watchedVideo: false,      // A线(04-13)是否已看过监控录像（获得私人日记密码）
-      decryptedDiary: false,    // B线(04-06)是否已解密私人日记
-      sawPhoto: false,          // B线(04-06)是否已查看值班室照片
+      watchedVideo: false,      // 苔丝（阁楼）是否已看过老照片（得到另一串数字）
+      decryptedDiary: false,    // 格雷（反钟镇）是否已打开"格雷日记"
+      sawPhoto: false,          // 格雷（反钟镇）是否已看过井边的怪照片
     },
-    sentMails: [],   // 双日期之间来回的报告 {fromTl,toTl,subject,body,time,isEnding,read}
-    filesRead: {},   // 已读文件 key: `${tl}:${name}`
+    sentMails: [],   // 两个世界之间来回的信 {fromTl,toTl,subject,body,time,isEnding,read}
+    filesRead: {},   // 已读物件 key: `${tl}:${name}`
   };
 }
 
@@ -314,31 +313,31 @@ function saveState(){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
-// ---------- 引导邮件链（仅 B 线 / 04-06，顺序解锁） ----------
+// ---------- 引导信链（仅反钟镇 / 格雷一侧，顺序解锁） ----------
 const INTRO_MAILS = [
   {
-    id:"intro1", from:"负责人", time:"22:10",
-    subject:"今晚交接",
-    body:"今晚培育室那批样本的温控你盯紧点，出了问题算你的。\n对了，这台终端的账号是共用的，别乱改密码，值班表上后面还有人要用。",
-    quip:"共用账号是吧？合着责任是众筹的，功劳是限量款，只有我抢不到。", mood:"normal"
+    id:"intro1", from:"钉在木屋门后的木牌", time:"未知钟点",
+    subject:"邮差须知（老规矩）",
+    body:"天一黑就该出门了：把田里稻草人怀里的纸条,一张张送到井边投进去,今天的差事才算办完。\n\n对了，树杈上那面镜子是镇上公用的，谁都能对着它写两句——但可别乱涂乱画，后面指不定还有谁要用它捎信。",
+    quip:"公用的镜子，公用的责任——这套说辞，怎么听着有点耳熟。", mood:"normal"
   },
   {
-    id:"intro2", from:"系统", time:"23:15",
-    subject:"日常报告已生成",
-    body:"今日值班日常报告已归档，如需查阅请转到「文件」面板查看。\n（本邮件为自动发送，请勿回复）",
-    quip:"自动发送、无需回复——好一个不用发加班费的“同事”。", mood:"normal"
+    id:"intro2", from:"时间树的树洞", time:"下午六点",
+    subject:"今天的心愿已经收好了",
+    body:"稻草人们今天的纸条,都已经归档存好，如需查看,去「物件」那边翻一翻就是。\n（本消息由树洞自动'沙沙'作响发出，无需回应。）",
+    quip:"一棵树都比我认真，自动生成报告，连加班费都不要。", mood:"normal"
   },
   {
-    id:"intro3", from:"未知发件人", time:"23:48",
-    subject:"如果你看到这封信",
-    body:"我不知道这封信会不会有人看到。\n\n如果有——说明这个账号还在被使用，说明这台终端还醒着。\n那就好。至少不是只有我一个人守着它。",
-    quip:"陌生来信，我第一反应是“又是贷款广告”——结果这文案玄乎得能拿奖。", mood:"creepy"
+    id:"intro3", from:"落款模糊的字条", time:"六点整（大概）",
+    subject:"如果有人看到这句话",
+    body:"我不知道这句话，会不会有人看见。\n\n如果看见了——说明这面镜子还醒着，说明还有人，愿意对着它写点什么。\n那就好。至少不是只有我一个人，对着一块会反光的木板自言自语。",
+    quip:"陌生留言，换我在阁楼收到，多半以为是恶作剧——不过这语气，倒挺真诚的。", mood:"creepy"
   },
   {
-    id:"intro4", from:"我自己", time:"23:55",
-    subject:"最后想说的话",
-    body:"培育室那边的事情有点不对劲，我可能没办法把这些话当面告诉任何人了。\n\n我翻到这台终端里一些奇怪的系统日志——上面盖的日期，是 04月13日。可值班表上明明写着，今天是 04月06日。\n\n如果这台终端的记录真能被写进那一天，那我想干脆顺手补一份说得过去的《值班报告》，混在系统日志里存档——就当留个记号，顺便也给自己找个台阶下。\n\n……邮件面板下面应该会出现【撰写报告】的入口了，去试试吧。",
-    quip:"写份报告应付了事？这套路我熟，糊弄学我可是拿过职业资格证的。", mood:"creepy"
+    id:"intro4", from:"格雷", time:"六点整（还是大概）",
+    subject:"想了很久，还是决定写下来",
+    body:"我好像，把一些很重要的事情，倒着忘掉了——连自己是从哪一天开始，困在这永远的六点里，都想不真切。\n\n可镜子里，好像已经浮出来一句回话——问题是，我还没写出对应的那句问句。\n\n算了，管它顺序对不对，我想把眼下能想到的事，好好写一写，当封信投进这面镜子里，试试看，能不能真的送到镜子外头去。\n\n……下面应该会出现【写一段话】的入口了，去试试吧。",
+    quip:"糊里糊涂先斩后奏——这操作，我熟，毕竟我交周报也是这个流程。", mood:"creepy"
   },
 ];
 
@@ -350,73 +349,73 @@ function allIntroRead(){
   return INTRO_MAILS.every(m => state.introRead.includes(m.id));
 }
 
-// ---------- 文件系统（按时间线区分，部分受 flags 控制显隐/锁定） ----------
+// ---------- 物件（按世界区分，部分受 flags 控制显隐/锁定） ----------
 function getFiles(tl){
   if(tl === "A"){
     return [
       {
-        name: "值班日志_04-13.txt", locked:false,
-        quip:"我的笔迹，我不认——甩锅的第一步，先否认。", mood:"normal",
-        content: "23:52\n接手夜班没多久，邮箱里忽然多出一封陌生来信，落款是「我自己」。\n\n值班表上写着 04月06日 也有人用过这台机器，账号还是我的这个——\n但我从没上过那天的班。"
+        name: "阁楼手记.txt", locked:false,
+        quip:"写日记这个习惯，看来我从小就有——不过内容一天比一天离谱。", mood:"normal",
+        content: "写在我自己本子上的：\n下雨的星期天,我在阁楼里翻出一面会认字的镜子——不是比喻,是真的会认字。\n镜子那头,好像住着一个后脑勺插着乌鸦羽毛的男孩,还有一整个被卡在下午六点的小镇。\n这事儿要是说给大人听,多半会被送去看医生。所以,先记在这儿,谁都别看。"
       },
       {
-        name: "门禁记录.log", locked:false,
-        quip:"卡号从那天起再没刷过——好家伙，请假请到失踪，这假条我给满分。", mood:"creepy",
-        content: "[系统日志 · 门禁]\n04月06日 23:47  卡号 ****8341  进入 西区-培育室\n04月06日 23:51  卡号 ****8341  离开 西区-培育室\n(该卡号此后未再出现于任何记录)",
+        name: "旧怀表的说明卡.txt", locked:false,
+        quip:"停在六点的表，配上'欠着一杯茶'——这镜子那头的镇子，多半也卡在同一个点上。", mood:"creepy",
+        content: "系在一只停摆怀表链子上的泛黄纸卡：\n『这只表,我说什么也不肯走了。表盘停在——18:00。若有谁能让它重新走动,那这镇子里欠着的一杯茶,也该续上了。』\n落款被虫蛀掉了一半,只留得一个'六'字的偏旁。",
         onRead(){ state.flags.gotAccessCode = true; }
       },
       {
-        name: "群聊记录.txt", locked:false,
-        quip:"复制粘贴是吧，这年头连闹鬼都不敬业。", mood:"creepy",
-        content: "[群聊记录 · 自动导出]\n\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n负责人：都过来啊都过来啊，我在楼下等着，数人头数人头\n系统提醒：检测到异常刷屏，该账号发言已被限制\n未知联系人：别回，他知道了，先别回"
+        name: "奶奶的购物清单.txt", locked:false,
+        quip:"奶奶买司康饼粉的执念，跟镜子那头吃不完的司康饼，是不是有点缘分。", mood:"normal",
+        content: "压在抽屉最底层的一张纸：\n司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉\n黄油　少许\n果酱　随意\n（写着写着好像陷进去出不来了，最后歪歪扭扭地补了一句：算了，直接多买点吧。）"
       },
       {
-        name: "监控录像.mp4", locked:false,
-        mediaType:"video",
-        mediaName:"video/monitor_west_2349.mp4",
-        mediaHint:"建议素材：5~8秒循环片段。低分辨率黑白监控画面，带扫描线/噪点；一个穿工装外套的模糊人影走向温控面板并伸手拧动旋钮；结尾定格特写一张便签，上面写着 <b>0426</b>。",
-        quip:"工装外套……我柜子里也有一件一模一样的，巧了是吧。", mood:"creepy",
-        content: "[监控录像 · 西区培育室 · 23:49]\n\n画面很暗，噪点很重。\n一个穿工装外套的人影走到温控面板前，伸手拧了拧旋钮。\n\n镜头怼近的最后一帧，能看到面板上贴着一张便签，边角卷起，上面潦草地写着：\n\n    0426\n\n人影的脸全程没有正对镜头。\n\n（画面到这里就断了，后面是雪花。）",
+        name: "老照片.jpg", locked:false,
+        mediaType:"image",
+        mediaName:"image/old_photo_clock.jpg",
+        mediaHint:"建议素材：一张泛黄的老照片，拍的是阁楼一角一台停摆的落地钟，钟面裂了一道缝，指针卡在六点和六点零一分之间；照片边角有铅笔写的小字。",
+        quip:"06:01——比六点多一分钟而已，这算盘打得，倒是挺细。", mood:"creepy",
+        content: "一张压在相册最后一页的老照片：\n拍的是这台阁楼里的旧落地钟,钟面裂了一道缝,两根指针卡在六点刚过一点点的地方,动弹不得。\n照片背面,铅笔字写着：\n\n    如果它能走完这一分钟就好了——06:01\n\n字迹很旧,力道很轻,像是写字的人,其实并不抱太大希望。",
         onRead(){ state.flags.watchedVideo = true; }
       },
     ];
   }else{
     return [
       {
-        name: "早班交接.txt", locked:false,
-        quip:"销毁前先看一遍——好家伙，纯纯的形式主义。", mood:"normal",
-        content: "早班交接：\n负责人说培育室那边出了点状况，让我把当天的门禁数据核对一遍，\n核对完就把「事故报告」销毁——密码是当天最后进入那张卡号的后四位，自己去门禁记录里查。\n\n（备注：这句话真讽刺，销毁前居然还要我先看一遍。）"
+        name: "邮差须知.txt", locked:false,
+        quip:"合着连撬锁密码都写在门后，这镇子的保密意识，约等于零。", mood:"normal",
+        content: "钉在木屋门后的旧木牌：\n每天黄昏,把田里稻草人怀里的纸条,一张张送到镇子中央的井边投进去,当天的差事就算办完。\n\n（备注：井边石缝里那只锈铁盒子,不该随便撬开——真要撬,密码是……大摆钟停下来那一刻,表盘上的数字。自己去找。）"
       },
       {
-        name: "潦草笔记.txt", locked:false,
-        quip:"老话说得好，中元节这天鬼门大开——我寻思现在天天都开，毕竟牛马也不挑日子。", mood:"creepy",
-        content: "今天在值班室随手写的：\n\n台灯坏了会一闪一闪的，还挺可爱\n\n看看看看看看\n 看看看看看看看\n  看看看看看看看看\n   看看看看看看看看看\n    看看看看看看看看看看\n   看看看看看看看看看\n  看看看看看看看看\n 看看看看看看看\n看看看看看看\n\n……写着写着不知道怎么就有点毛了，删了吧，删不掉，先这样。"
+        name: "涂鸦手账.txt", locked:false,
+        quip:"字迹越写越像是自己在跟自己抢答案，倒着活也真是不容易。", mood:"creepy",
+        content: "随手写在手账边角的字迹：\n\n茶要凉了茶要凉了茶要凉了茶要凉了茶要凉了茶要凉了\n\n（好奇怪，这句话我明明还没写，怎么已经写了这么多遍？算了，倒着长记性的镇子，见怪不怪。）\n\n司康饼今天好像终于要吃完了，也不知道是不是我记错了方向。"
       },
       {
-        name: state.flags.decryptedReport ? "事故报告.txt" : "事故报告.enc",
+        name: state.flags.decryptedReport ? "争执记录.txt" : "争执记录.enc",
         locked: !state.flags.decryptedReport,
-        quip: state.flags.decryptedReport ? "操作账号是我自己……行，这锅我先背着，反正也不是头一次。" : undefined,
-        mood: state.flags.decryptedReport ? "creepy" : undefined,
+        quip: state.flags.decryptedReport ? "原来我们镇子被困住，不是什么惊天动地的诅咒，就是两个爱面子的家伙谁也不肯先服软而已。" : undefined,
+        mood: state.flags.decryptedReport ? "normal" : undefined,
         content: state.flags.decryptedReport
-          ? "[已解密]\n培育室的恒温系统被人为调高了整整六度。\n设备日志显示操作时间是 23:49，操作账号——是我自己的账号。\n\n我不记得自己做过这件事。\n\n如果以后还有人用这台终端，也许该把这份记录悄悄补进 04-13 那天的系统日志里——邮件面板应该能做到。"
-          : "[已加密] 使用命令解密： decrypt 事故报告 <四位密码>"
+          ? "[已上锁的盒子打开了]\n大摆钟脾气不坏,只是特别在意公平；六点先生总嫌大家吃得慢,爱提前拨快指针。\n有一天六点先生又来催,大摆钟卸下齿轮塞给他：『你自己去伺候得了！』六点先生也不服软：『好啊，那你自己待着吧，待到地老天荒！你手底下这些人,谁也别想好好地往前记事儿了！』\n两位都后悔了——可惜吵架说出去的话,跟司康饼上的糖霜一样,收不回来了。\n\n如果镜子外头有人在看——你那边，会不会正好有什么办法，能让两个死要面子的家伙，体面地和好？"
+          : "[已上锁] 使用命令解密： decrypt 争执记录 <四位数字>"
       },
       {
-        name: state.flags.decryptedDiary ? "私人日记.txt" : "私人日记.enc",
+        name: state.flags.decryptedDiary ? "格雷日记.txt" : "格雷日记.enc",
         locked: !state.flags.decryptedDiary,
-        quip: state.flags.decryptedDiary ? "写日记这习惯——好家伙，原来我这么早就开始搞“打工人碎碎念”文学了，肉麻死了。" : "又是一个加密文件，合着这破电脑就没几个文件能直接看的。",
-        mood: state.flags.decryptedDiary ? "creepy" : "normal",
+        quip: state.flags.decryptedDiary ? "原来这本日记，是写给'我'自己的——只是那个'我'，恰好是镜子外头的一个陌生人。" : "又是一件锁着的东西，合着这镇子就没几样能直接看的。",
+        mood: state.flags.decryptedDiary ? "normal" : "normal",
         content: state.flags.decryptedDiary
-          ? "[已解密]\n11月的某天，我开始怀疑这台终端不止我一个人在用。\n\n有些文件我明明没建过，却带着我的账号水印；有些操作日志的时间，是我睡着时的时间。\n\n今天我把培育室的门禁密码写在了监控室的便签上——不是我疏忽，是我故意的。\n\n如果有一天『另一个我』看到了这份日记，希望TA明白：\n这台终端记得的事，比我们任何一个人都多。"
-          : "[已加密] 使用命令解密： decrypt 私人日记 <四位密码>（提示：密码出现在别处的画面里）"
+          ? "[已上锁的本子打开了]\n我发现,我时不时会忘记一件昨天还记得的事——这地方的记忆是倒着长的,越住得久,越说不准哪天会把重要的事,倒着弄丢。\n\n我把这句话留在这儿,也不知道写给谁看：\n总有一天,会有一个『正着长记忆』的人,出现在这面镜子那头。到时候,好好谢谢人家——TA大概能帮我们把这钟,拨回去一点点。"
+          : "[已上锁] 使用命令解密： decrypt 格雷日记 <四位数字>（提示：数字曾出现在镜子另一头的某张老照片里）"
       },
       {
-        name: "值班室照片.jpg", locked: !state.flags.decryptedDiary,
+        name: "井边的怪照片.jpg", locked: !state.flags.decryptedDiary,
         mediaType:"image",
-        mediaName:"image/duty_room.jpg",
-        mediaHint:"建议素材：暖黄灯光的老旧值班室实拍/摆拍照片。桌角一台老式CRT显示器还亮着，屏幕反光里隐约能看出一个不属于房间的人影轮廓（半透明/若隐若现，不需要太写实）。",
-        quip:"……那个反光是显示器本身的花纹吧。一定是。", mood:"creepy",
-        content: "值班室，晚上拍的。\n\n桌上的台灯歪了一点，没人扶。\n\n显示器还亮着，屏幕反光里映出半个房间——\n仔细看，好像多了一个不该在那儿的轮廓。\n\n（也可能只是我盯屏幕太久，眼睛花了。）",
+        mediaName:"image/well_reflection.jpg",
+        mediaHint:"建议素材：镇子中央那口井的照片，水面倒映着黄昏天色与老槐树；仔细看，水纹里似乎多映出一道不属于反钟镇的轮廓——短发，拿着一支铅笔。",
+        quip:"井里那道多出来的轮廓，该不会就是镜子外头，正在看这段话的人吧。", mood:"creepy",
+        content: "蹲在井边,顺手往水里瞧了一眼。\n井水映着老槐树,映着挂在树上的镜子,映着我自己的影子——\n可影子旁边,好像还多出来一道轮廓,梳着我从没见过的发型,手里好像捏着一支铅笔。\n\n（也可能只是水面晃了一下,我看花了眼。）",
         onRead(){ state.flags.sawPhoto = true; }
       },
     ];
@@ -428,11 +427,15 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
 const mainEl = $("#main");
 
+function charName(tl){
+  return tl === "A" ? "苔丝" : "格雷";
+}
+
 function applyTheme(){
   document.body.className = state.timeline === "A" ? "theme-a" : "theme-b";
   $("#title-sub").textContent = state.timeline === "A"
-    ? "SHARED_TERMINAL // " + DATE_A_FULL + " · 值班记录"
-    : "SHARED_TERMINAL // " + DATE_B_FULL + " · 值班记录";
+    ? "MIRROR_LINK // " + DATE_A_FULL
+    : "MIRROR_LINK // " + DATE_B_FULL;
   renderTopControl();
 }
 
@@ -473,7 +476,7 @@ function renderApp(app){
   if(app === "system") return renderSystem();
 }
 
-// ---- 文件面板 ----
+// ---- 物件面板 ----
 function renderFiles(fileToOpen){
   const files = getFiles(state.timeline);
   if(fileToOpen){
@@ -481,8 +484,8 @@ function renderFiles(fileToOpen){
     if(f && !f.locked){
       markFileRead(f);
       mainEl.innerHTML = `
-        <div class="panel-title">文件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
-        <span class="back-link" onclick="renderFiles()">&laquo; 返回文件列表</span>
+        <div class="panel-title">物件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
+        <span class="back-link" onclick="renderFiles()">&laquo; 返回物件列表</span>
         ${renderMediaBox(f)}
         <div class="doc-view">${escapeHtml(f.content)}</div>
       `;
@@ -491,22 +494,22 @@ function renderFiles(fileToOpen){
     }
   }
   mainEl.innerHTML = `
-    <div class="panel-title">文件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
+    <div class="panel-title">物件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
     ${files.map(f => `
       <div class="file-row ${f.locked?"locked":""}" onclick="${f.locked?"quipLockedFile()":`renderFiles('${f.name}')`}">
         <span class="icon">${f.locked ? "🔒" : (f.mediaType === "video" ? "🎞" : f.mediaType === "image" ? "🖼" : "📄")}</span>
         <span class="name">${f.name}</span>
-        ${f.locked ? '<span class="tag">加密</span>' : (f.mediaType ? `<span class="tag">${f.mediaType==="video"?"视频":"图片"}</span>` : "")}
+        ${f.locked ? '<span class="tag">上锁</span>' : (f.mediaType ? `<span class="tag">${f.mediaType==="video"?"影像":"照片"}</span>` : "")}
       </div>
     `).join("")}
-    <div class="hint">提示：在「终端」里可以用 <b>ls</b> 查看文件、<b>cat 文件名</b> 阅读、<b>decrypt 文件名 密码</b> 解密加密文件。</div>
+    <div class="hint">提示：在「镜语」里可以用 <b>ls</b> 看看有什么物件、<b>cat 名称</b> 细看、<b>decrypt 名称 数字</b> 打开上锁的物件。</div>
   `;
 }
 
 function renderMediaBox(f){
   if(!f.mediaType) return "";
   const icon = f.mediaType === "video" ? "🎞" : "🖼";
-  const label = f.mediaType === "video" ? "视频素材占位" : "图片素材占位";
+  const label = f.mediaType === "video" ? "影像素材占位" : "照片素材占位";
   return `
     <div class="media-box">
       <div class="media-icon">${icon}</div>
@@ -531,13 +534,13 @@ function escapeHtml(str){
   return str.replace(/[&<>]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
 }
 
-// ---- 吐槽独白系统：点击邮件/文件/解谜物品时，主角（社畜吐槽役）发表评论 ----
+// ---- 碎碎念系统：点击信件/物件/解谜物品时，主角发表评论 ----
 const QUIP_POOL = {
-  mail: ["已读。扑面而来的班味，赛博加班的既视感。","一封邮件而已，慌什么，我经历过的甲方需求比这瘆人多了。","收到，继续搬砖，砖比鬼实在。","下班后还发邮件——好家伙，连闹鬼都比我老板会挑时间。"],
-  file: ["报表见多了，这种文档吓不到我，顶多算轻度惊悚。","字是挺多，但准确率比周报还低，凑合看。","继续用扫材料的速度扫灵异现象，五秒一页，绝不停留。"],
-  fileLocked: ["加密？合着连销毁个文件都要卷密码。","锁上了，跟我当年被锁工位一个味儿。"],
-  decryptFail: ["密码不对——白紧张一场，血压算是白升了。"],
-  decryptOk: ["解开了。好奇心这东西，跟加班一样，一上头就停不下来。"],
+  mail: ["已读。这信写得，比镇上的公告牌靠谱多了。","一封信而已，慌什么——我见过比这更离谱的邀请函，还是我自己写的。","收到，继续办差事，反正也没有司康饼在等着。","这年头，连镜子写信都比某些人靠谱。"],
+  file: ["字不少，但读起来比数学作业有意思多了。","继续翻，说不定下一页就写着'恭喜你，谜底揭晓'。","这种阅读速度，拿去对付作业该多好。"],
+  fileLocked: ["锁上了——跟我数学作业的解法一样，锁得死死的。","上锁？合着连一张纸条都要卷密码。"],
+  decryptFail: ["数字不对——白激动一场，血压算是白升了。"],
+  decryptOk: ["解开了！好奇心这东西，跟司康饼一样，一上头就停不下来。"],
 };
 let quipTimer = null;
 function showQuip(text, mood){
@@ -558,13 +561,13 @@ function randomQuip(pool){
   return arr.length ? arr[Math.floor(Math.random() * arr.length)] : "";
 }
 function quipLockedFile(){ showQuip(randomQuip("fileLocked"), "normal"); }
-function quipLockedMail(){ showQuip("上一封还没读完呢，先按顺序来。", "normal"); }
+function quipLockedMail(){ showQuip("上一封信还没读完呢，先按顺序来。", "normal"); }
 
-// ---- 邮件面板（存档/读档的展示层） ----
+// ---- 书信面板（写信/看信的展示层） ----
 let composeOpen = false;
 
 function buildMailList(tl){
-  // 收件箱 = 固定引导链（仅B线） + 双线之间来回收到的信
+  // 信箱 = 固定引导信链（仅反钟镇一侧） + 两个世界之间来回收到的信
   const list = [];
   if(tl === "B"){
     INTRO_MAILS.forEach((m, idx) => {
@@ -577,28 +580,28 @@ function buildMailList(tl){
     });
   }else{
     list.push({
-      kind:"sys", id:"sys-welcome", from:"系统管理员", time:"今天 00:03",
-      subject:"账号异常读写提醒",
-      body:"值班账号「NIGHTWATCH_01」检测到跨时段异常读写，如非本人操作请立即上报。（本邮件为自动发送，请勿回复）",
+      kind:"sys", id:"sys-welcome", from:"镜子的雾气", time:"今天 上午",
+      subject:"阁楼有点不对劲",
+      body:"你最近是不是总盯着那面旧镜子看？镜面偶尔泛起的雾气，好像不是普通的灰尘。\n如果发现什么奇怪的字迹，别急着擦掉。（本提醒自动出现，无法回复。）",
       locked:false, read: state.filesRead["A:__sys-welcome"] === true,
-      quip:"系统警告，程序员的地基我不懂，但这句我看得懂——让我小心点。", mood:"creepy",
+      quip:"这算哪门子的智能家居提醒，比我家扫地机器人还有灵性。", mood:"creepy",
     });
     if(state.flags.watchedVideo){
       list.push({
-        kind:"sys2", id:"sys-warning", from:"负责人", time:"今天 00:47",
-        subject:"谁让你调监控了",
-        body:"西区那段录像不是随便什么人都能看的。\n看都看了，当我没说——但劝你一句，有些东西知道了就不能装作不知道。",
+        kind:"sys2", id:"sys-warning", from:"镜子里飘来的字条", time:"今天 稍晚",
+        subject:"你不该翻到那张照片的",
+        body:"那张照片本来压在相册最底下——不过既然翻到了，那就……祝你好运？\n有些数字，看见了就很难装作没看见。",
         locked:false, read: state.filesRead["A:__sys-warning"] === true,
-        quip:"好家伙，监控我都能调，权限管理是摆设吗。", mood:"creepy",
+        quip:"被一面镜子将了一军，这售后服务态度真是一言难尽。", mood:"creepy",
       });
     }
   }
   state.sentMails
     .filter(m => m.toTl === tl)
     .forEach(m => list.push({
-      kind:"received", id:m.id, from: m.fromTl === "A" ? ("来自 " + DATE_A_SHORT + " 的记录") : ("来自 " + DATE_B_SHORT + " 的记录"),
+      kind:"received", id:m.id, from: m.fromTl === "A" ? ("来自" + DATE_A_SHORT + "的信") : ("来自" + DATE_B_SHORT + "的信"),
       time:m.time, subject:m.subject, body:m.body, locked:false, read:m.read, isEnding:m.isEnding,
-      quip: m.isEnding ? "行吧，报告都交了，看看吧。" : undefined,
+      quip: m.isEnding ? "信到了。深呼吸一下，再点开看看写了什么。" : undefined,
     }));
   return list;
 }
@@ -611,8 +614,8 @@ function renderMail(openId){
     if(m && !m.locked){
       markMailRead(m);
       mainEl.innerHTML = `
-        <div class="panel-title">邮件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
-        <span class="back-link" onclick="renderMail()">&laquo; 返回收件箱</span>
+        <div class="panel-title">书信 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
+        <span class="back-link" onclick="renderMail()">&laquo; 返回信箱</span>
         <div class="mail-detail">
           <div class="subject">${escapeHtml(m.subject)}</div>
           <div class="meta">发件人：${escapeHtml(m.from)}　${escapeHtml(m.time)}</div>
@@ -627,7 +630,7 @@ function renderMail(openId){
   }
 
   mainEl.innerHTML = `
-    <div class="panel-title">邮件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
+    <div class="panel-title">书信 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
     ${list.map(m => `
       <div class="mail-row ${m.locked?"locked":""}" onclick="${m.locked?"quipLockedMail()":`renderMail('${m.id}')`}">
         <span class="unread-dot ${m.read?"hidden":""}"></span>
@@ -647,23 +650,23 @@ function renderMail(openId){
 
 function renderComposeSection(){
   if(!state.sendUnlocked){
-    return `<div class="hint">把邮件按顺序读完，也许会有新的东西解锁……</div>`;
+    return `<div class="hint">把信按顺序读完，也许会有新的东西解锁……</div>`;
   }
   if(!composeOpen){
     return `
       <div class="compose-toggle-wrap">
-        <button class="action-btn" onclick="openCompose()">✉ 补写一份值班报告</button>
+        <button class="action-btn" onclick="openCompose()">🕯 在镜子上写一段话</button>
       </div>
     `;
   }
   const draft = defaultDraft();
   return `
     <div class="compose-box">
-      <div class="compose-label">存档目标：${state.timeline === "B" ? DATE_A_SHORT : DATE_B_SHORT}</div>
+      <div class="compose-label">这段话会被送到：${state.timeline === "B" ? DATE_A_SHORT : DATE_B_SHORT}</div>
       <textarea id="compose-text">${escapeHtml(draft)}</textarea>
       <div class="compose-actions">
         <button class="action-btn ghost" onclick="closeCompose()">取消</button>
-        <button class="action-btn" onclick="sendComposedMail()">提交</button>
+        <button class="action-btn" onclick="sendComposedMail()">投进镜子</button>
       </div>
     </div>
   `;
@@ -671,16 +674,16 @@ function renderComposeSection(){
 
 function defaultDraft(){
   if(state.timeline === "B" && state.flags.decryptedReport && !state.flags.reportSent){
-    let base = "我查到了。培育室的恒温系统是被人为调高的，操作账号是我自己的——但我不记得做过这件事。\n如果你看到这份报告，请一定要把这份记录留下来。";
+    let base = "我搞清楚了。反钟镇的钟停在六点，是因为大摆钟和六点先生赌气吵了一架，谁也不肯先服软。\n如果你那边有什么点子，能让两个死要面子的家伙体面地和好——请一定告诉我。";
     if(state.flags.decryptedDiary){
-      base += "\n\n我还翻到了一篇没署名的日记，写日记的人也是“我”。TA说这台终端记得的事，比我们任何一个人都多。";
+      base += "\n\n我还翻到自己的一本日记，写日记的“我”说，总有一天会等到一个记性和我们不一样的人。我猜，那大概就是你。";
     }
     return base;
   }
   if(state.timeline === "B" && !state.crossUnlocked){
-    return "如果这份报告真能被系统错误地存进 " + DATE_A_SHORT + " 那天——那我想说，我可能遇到麻烦了。\n请帮我看看这台终端里的记录，好吗？";
+    return "如果这面镜子真能把话送到镜子外头——那我想说，我好像被困在一场总也走不完的下午六点里了。你那边，一切都还正常吗？";
   }
-  return "报告收到了。这边一切都还算正常，我会继续查下去的。";
+  return "谢谢你的点子，这边一切都顺利，我会把后续也讲给你听的。";
 }
 
 function openCompose(){ composeOpen = true; renderMail(); }
@@ -699,7 +702,7 @@ function sendComposedMail(){
   const mail = {
     id: "m" + Date.now(),
     fromTl, toTl,
-    subject: isReportMail ? "观测数据" : (firstTime ? "值班报告存档" : "补充记录"),
+    subject: isReportMail ? "关于那场争执，我都搞清楚了" : (firstTime ? "第一次投进镜子里的话" : "捎来的话"),
     body: text,
     time: nowLabel(),
     isEnding: isReportMail,
@@ -738,54 +741,54 @@ function nowLabel(){
   return (state.timeline === "A" ? DATE_A_SHORT + " " : DATE_B_SHORT + " ") + d.toLocaleTimeString("zh-CN",{hour12:false});
 }
 
-// ---- 系统状态面板 ----
+// ---- 镜面状态面板 ----
 function renderSystem(){
   const f = state.flags;
   mainEl.innerHTML = `
-    <div class="panel-title">系统状态</div>
-    <div class="flag-row"><span>A线已获取门禁密码</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>B线已解密事故报告</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>报告已跨日期归档（触发结局线索）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>A线已查看监控录像</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>B线已解密私人日记</span><span class="flag-val ${f.decryptedDiary?"on":"off"}">${f.decryptedDiary?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>B线已查看值班室照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>【撰写报告】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>双日期切换已解锁</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
-    <div class="hint">存档 / 读档在本作里被包装成「收发邮件」：撰写报告 = 存档，查阅邮件 = 读档。<br>第一次提交报告会解锁双日期切换；在 ${DATE_B_SHORT} 解密事故报告后再补一份报告，会把线索归档进 ${DATE_A_SHORT}，触发结局。</div>
+    <div class="panel-title">镜面状态</div>
+    <div class="flag-row"><span>苔丝已找到怀表密码</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>格雷已解开争执记录</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>真相已投过镜子（触发结局线索）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>苔丝已看过老照片</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>格雷已翻开自己的日记</span><span class="flag-val ${f.decryptedDiary?"on":"off"}">${f.decryptedDiary?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>格雷已看到井边的怪照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>【写一段话】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>镜子两端已连通</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
+    <div class="hint">写信 / 看信在本作里就是「存档 / 读档」：写一段话 = 存档，翻开书信 = 读档。<br>第一次投出信件会连通镜子两端；在${DATE_B_SHORT}解开争执记录后再写一段话，会把真相送到${DATE_A_SHORT}，触发结局。</div>
     <div style="margin-top:24px;">
       <button class="action-btn" onclick="if(confirm('确定要重置全部进度吗？')){localStorage.removeItem('${STORAGE_KEY}');location.reload();}">重置存档</button>
     </div>
   `;
 }
 
-// ---- 终端 ----
+// ---- 镜语（终端） ----
 let termHistory = [];
 
-// 可解密文件配置表（供 decrypt 命令通用查找）
+// 可打开物件配置表（供 decrypt 命令通用查找）
 const DECRYPT_TARGETS = {
-  "事故报告": {
-    password: "8341",
+  "争执记录": {
+    password: "1800",
     prereqFlag: "gotAccessCode",
-    prereqHint: "密码校验失败——你好像还不知道正确的密码是什么。（提示：去 " + DATE_A_SHORT + " 那条日期线查一下门禁记录）",
+    prereqHint: "数字对不上——你好像还不知道那只停摆的怀表，表盘定格在几点。（提示：去『阁楼』那侧找找旧怀表的说明卡）",
     doneFlag: "decryptedReport",
-    successMsg: "解密成功。文件已生成：事故报告.txt",
+    successMsg: "锁开了。物件已生成：争执记录.txt",
   },
-  "私人日记": {
-    password: "0426",
+  "格雷日记": {
+    password: "0601",
     prereqFlag: "watchedVideo",
-    prereqHint: "密码校验失败——你好像还没看过什么能提示密码的东西。（提示：去 " + DATE_A_SHORT + " 那条日期线看看监控录像）",
+    prereqHint: "数字对不上——你好像还没看过什么能提示这串数字的东西。（提示：去『阁楼』那侧看看那张老照片）",
     doneFlag: "decryptedDiary",
-    successMsg: "解密成功。文件已生成：私人日记.txt",
+    successMsg: "锁开了。物件已生成：格雷日记.txt",
   },
 };
 
 function renderTerminal(){
   mainEl.innerHTML = `
-    <div class="panel-title">终端 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
+    <div class="panel-title">镜语 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
     <div id="term-log"></div>
     <div class="term-input-row">
-      <span class="prompt">${state.timeline}:~$</span>
-      <input id="term-input" type="text" autocomplete="off" placeholder="输入 help 查看命令" />
+      <span class="prompt">${charName(state.timeline)} ❯</span>
+      <input id="term-input" type="text" autocomplete="off" placeholder="输入 help 查看能做的事" />
     </div>
   `;
   renderTermLog();
@@ -799,7 +802,7 @@ function renderTerminal(){
     }
   });
   if(termHistory.length === 0){
-    pushLog("欢迎使用 ECHO 共享终端。输入 <b>help</b> 查看可用命令。", "cmd-ok");
+    pushLog("欢迎对着镜子低语。输入 <b>help</b> 查看能做的事。", "cmd-ok");
   }
 }
 
@@ -819,7 +822,7 @@ function pushLog(text, cls){
 function runCommand(raw){
   const cmd = raw.trim();
   if(!cmd) return;
-  pushLog(`<span class="cmd-echo">${state.timeline}:~$ ${escapeHtml(cmd)}</span>`);
+  pushLog(`<span class="cmd-echo">${charName(state.timeline)} ❯ ${escapeHtml(cmd)}</span>`);
   const parts = cmd.split(/\s+/);
   const verb = parts[0].toLowerCase();
   const files = getFiles(state.timeline);
@@ -827,13 +830,13 @@ function runCommand(raw){
   if(verb === "help"){
     pushLog(
 `可用命令：
-  ls                     查看当前文件
-  cat &lt;文件名&gt;            阅读文件内容
-  decrypt &lt;文件名&gt; &lt;密码&gt;  解密加密文件（仅 ${DATE_B_SHORT} 那条日期线可用）
-  whoami                 核对当前账号身份
-  clear                  清空终端显示
+  ls                     看看这边有什么物件
+  cat &lt;名称&gt;              细看某个物件
+  decrypt &lt;名称&gt; &lt;数字&gt;    用数字打开上锁的物件（仅反钟镇一侧可用）
+  whoami                 试着想起自己是谁
+  clear                  把这些话从镜面上擦掉
 
-提示：撰写报告 / 查阅邮件请前往左侧「邮件」面板；视频/图片类文件用 cat 只能看文字记录，完整画面请去「文件」面板查看。`, "cmd-ok");
+提示：写信 / 看信请去左侧「书信」；照片类物件用 cat 只能看文字描述，完整画面请去「物件」面板查看。`, "cmd-ok");
   }
   else if(verb === "ls"){
     pushLog(files.map(f => {
@@ -844,27 +847,27 @@ function runCommand(raw){
   else if(verb === "cat"){
     const name = parts.slice(1).join(" ");
     const f = files.find(x => x.name === name);
-    if(!f){ pushLog(`找不到文件：${escapeHtml(name)}`, "cmd-err"); }
-    else if(f.locked){ pushLog(`文件已加密，无法直接查看：${escapeHtml(name)}`, "cmd-err"); }
+    if(!f){ pushLog(`找不到这个物件：${escapeHtml(name)}`, "cmd-err"); }
+    else if(f.locked){ pushLog(`这东西还锁着，没法直接看：${escapeHtml(name)}`, "cmd-err"); }
     else{
       markFileRead(f);
       pushLog(escapeHtml(f.content));
       if(f.mediaType){
-        pushLog(`（提示：该文件包含${f.mediaType==="video"?"视频":"图片"}素材，去「文件」面板可以看到画面占位）`, "cmd-echo");
+        pushLog(`（提示：该物件包含${f.mediaType==="video"?"影像":"照片"}素材，去「物件」面板可以看到画面占位）`, "cmd-echo");
       }
       showQuip(f.quip || randomQuip("file"), f.mood || "normal");
     }
   }
   else if(verb === "decrypt"){
     if(state.timeline !== "B"){
-      pushLog("这台终端在 " + DATE_A_SHORT + " 这条日期线上没有可解密的文件。", "cmd-err");
+      pushLog("镜子照进" + DATE_A_SHORT + "这一侧，没有需要打开的上锁物件。", "cmd-err");
     }else{
       const name = parts[1];
       const code = parts[2];
       const target = DECRYPT_TARGETS[name];
-      if(!name || !code){ pushLog("用法：decrypt <文件名> <四位密码>", "cmd-err"); }
-      else if(!target){ pushLog(`找不到可解密的文件：${escapeHtml(name)}`, "cmd-err"); }
-      else if(state.flags[target.doneFlag]){ pushLog(`该文件已经解密过了，用 cat ${name}.txt 查看。`, "cmd-ok"); }
+      if(!name || !code){ pushLog("用法：decrypt <名称> <四位数字>", "cmd-err"); }
+      else if(!target){ pushLog(`找不到能打开的物件：${escapeHtml(name)}`, "cmd-err"); }
+      else if(state.flags[target.doneFlag]){ pushLog(`这东西已经打开过了，用 cat ${name}.txt 看看。`, "cmd-ok"); }
       else if(!state.flags[target.prereqFlag]){
         pushLog(target.prereqHint, "cmd-err");
         showQuip(randomQuip("decryptFail"), "fail");
@@ -875,7 +878,7 @@ function runCommand(raw){
         pushLog(target.successMsg, "cmd-ok");
         showQuip(randomQuip("decryptOk"), "ok");
       }else{
-        pushLog("密码错误。", "cmd-err");
+        pushLog("数字不对。", "cmd-err");
         showQuip(randomQuip("decryptFail"), "fail");
       }
     }
@@ -888,27 +891,27 @@ function runCommand(raw){
     renderTermLog();
   }
   else{
-    pushLog(`未知命令：${escapeHtml(verb)}（输入 help 查看可用命令）`, "cmd-err");
+    pushLog(`看不懂这句话：${escapeHtml(verb)}（输入 help 查看能做的事）`, "cmd-err");
   }
 }
 
-// ---- 文字恐怖：账号身份核对故障文本（递进式文字腐蚀，参考"祖国文字"梗）----
+// ---- 记忆倒着长：试着想起自己是谁（递进式文字模糊，改自"文字腐蚀"梗，改走轻松路线）----
 function revealGlitchIdentity(){
-  pushLog("正在核对账号身份……", "cmd-echo");
+  pushLog("正在试着想起自己是谁……", "cmd-echo");
   const lines = [
-    "请正确合理的使用祖国文字",
-    "请正蒛合理棏使用祖国文字",
-    "㑴正蒛合理棏使癕祖鐹文字",
-    "㑴鄭蒛和澧棏使癕祖国文湽",
-    "㑴鄭蒛穒澧棏贳癕顇鐹闦湽",
+    "我叫……",
+    "我叫格雷，应该是。",
+    "格靁，等等，这样对嗎",
+    "格靁鎃，鏡孒也開始犯迷糊叻",
+    "……算了，喝口茶，喝完再想。",
   ];
   lines.forEach((line, i) => {
     setTimeout(() => {
       pushLog(line, `glitch-l${i}`);
       if(i === lines.length - 1){
         setTimeout(() => {
-          pushLog("……账号信息核对失败，已忽略。", "cmd-err");
-          showQuip("好，系统开始文字乱码了，班味都不带这么邪门的。", "creepy");
+          pushLog("……身份核对已放弃，喝茶去了。", "cmd-err");
+          showQuip("好家伙，连自己名字都要现想，这键盘我先收好。", "creepy");
         }, 500);
       }
     }, i * 700);
@@ -922,10 +925,10 @@ function triggerEnding(){
   saveState();
   let extra = "";
   if(state.flags.sawPhoto){
-    extra = "\n\n后来我才想明白，值班室照片里那个多出来的轮廓，可能就是隔着七天，正在读这份记录的另一个我。";
+    extra = "\n\n后来我才想明白，井水里那道多出来的轮廓，大概就是隔着一整面镜子，正在读这段话的另一个人。";
   }
   $("#ending-text").textContent =
-    "一台电脑，两个日期，一个共享的账号。\n我们隔着七天，用一份又一份“值班报告”，拼凑出了真相。" + extra + "\n\n（ECHO 可玩骨架 Demo · 完）";
+    "一面镜子，两个世界，一场谁也不肯先服软的争执。\n我们隔着一整场“倒着长的记忆”，用一封又一封荒唐的信，把事情，慢慢拼对了。" + extra + "\n\n（镜中来客 · 苔丝与反钟镇 · 可玩骨架 Demo · 完）";
   $("#ending").classList.add("show");
 }
 
@@ -940,7 +943,7 @@ function renderNavDots(){
 // ---- 时钟 ----
 function tickClock(){
   const d = new Date();
-  $("#clock").textContent = (state.timeline === "A" ? "LOG@" + DATE_A_SHORT + " " : "LOG@" + DATE_B_SHORT + " ") + d.toLocaleTimeString("zh-CN",{hour12:false});
+  $("#clock").textContent = (state.timeline === "A" ? "MIRROR@" + DATE_A_SHORT + " " : "MIRROR@" + DATE_B_SHORT + " ") + d.toLocaleTimeString("zh-CN",{hour12:false});
 }
 setInterval(tickClock, 1000);
 
