@@ -241,6 +241,35 @@
   #ending p{max-width:600px;line-height:2;font-size:14px;opacity:.85;margin-bottom:30px;}
 
   ::selection{background:var(--accent);color:#000;}
+
+  /* ===== 钟码算盘（数字根计算器） ===== */
+  #calc{
+    position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:55;
+    display:none;align-items:center;justify-content:center;
+  }
+  #calc.show{display:flex;}
+  #calc-box{
+    max-width:560px;width:92%;border:1px solid var(--accent);padding:26px 30px;
+    background:#05080d;border-radius:4px;box-shadow:0 0 32px rgba(77,200,255,.12);
+    color:var(--accent);
+  }
+  #calc-box h2{font-size:15px;letter-spacing:4px;margin:0 0 14px;text-align:center;text-shadow:var(--glow);}
+  .calc-door-ref{font-size:12px;opacity:.75;line-height:1.8;padding:10px 12px;border:1px dashed var(--accent-dim);margin-bottom:14px;}
+  .calc-slot{min-height:30px;font-size:18px;letter-spacing:4px;text-align:center;margin-bottom:12px;text-shadow:var(--glow);}
+  .calc-slot-num{display:inline-block;border:1px solid var(--accent);border-radius:3px;padding:2px 10px;margin:0 2px;}
+  .calc-steps{min-height:70px;font-size:13px;line-height:1.9;margin-bottom:12px;text-align:center;}
+  .calc-steps-line{opacity:.85;}
+  .calc-result{margin-top:6px;font-size:15px;}
+  .calc-result b{font-size:20px;text-shadow:var(--glow);}
+  .calc-digits{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:16px;}
+  .calc-digit{
+    width:38px;height:38px;border:1px solid var(--accent);background:transparent;color:var(--accent);
+    font-family:inherit;font-size:15px;cursor:pointer;border-radius:4px;transition:.15s;
+  }
+  .calc-digit:hover{background:var(--accent);color:#000;}
+  .calc-digit.locked{opacity:.3;border-color:var(--accent-dim);cursor:not-allowed;}
+  .calc-digit.locked:hover{background:transparent;color:var(--accent);}
+  .calc-actions{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
 </style>
 </head>
 <body class="theme-b">
@@ -253,6 +282,7 @@
       <span id="tl-locked-hint" class="locked-hint">［镜面只映出反钟镇］把该读的信都读完，说不定镜子会展示更多……</span>
       <button id="tl-toggle-btn" class="tl-toggle" style="display:none;"></button>
     </div>
+    <button id="calc-open-btn" class="tl-toggle" onclick="openCalc()">🧮 钟码算盘</button>
     <div id="clock"></div>
   </div>
 
@@ -276,6 +306,25 @@
 
 </div></div>
 
+<!-- 钟码算盘遮罩 -->
+<div id="calc">
+  <div id="calc-box">
+    <h2>钟码算盘 · 数字根计算器</h2>
+    <div id="calc-door-ref" class="calc-door-ref">选一扇门作为对照目标，或自由试算。</div>
+    <div class="calc-slot" id="calc-slot">— 点下面的钟码开始组合 —</div>
+    <div class="calc-steps" id="calc-steps"></div>
+    <div class="calc-digits" id="calc-digits"></div>
+    <div style="margin:10px 0;font-size:11px;opacity:.5;text-align:center;letter-spacing:1px;">对照门：</div>
+    <div id="calc-door-btns" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:14px;"></div>
+    <div class="calc-actions">
+      <button class="action-btn ghost" onclick="calcBackspace()">退格</button>
+      <button class="action-btn ghost" onclick="calcClear()">清空</button>
+      <button class="action-btn" onclick="calcCompute()">求根</button>
+      <button class="action-btn ghost" onclick="closeCalc()">关闭</button>
+    </div>
+  </div>
+</div>
+
 <div id="tutorial">
   <div id="tutorial-box">
     <h2>欢迎来到镜中来客</h2>
@@ -286,18 +335,22 @@
     <div class="tut-step">
       <strong>怎么玩？</strong><br>
       先读完左侧「书信」里的所有<span class="tut-tag">引导信</span>，写信入口就会解锁。<br>
-      然后用左侧「镜语」（终端）输入命令，查看和解开物件。<br>
-      试试输入 <code>help</code> 查看全部命令，<code>ls</code> 查看这里有什么。
+      然后用「镜语」（终端）输入命令查看物件——物件文字里藏着<span class="tut-tag">钟码</span>（0–9 的数字碎片）。<br>
+      试试输入 <code>help</code> 查看全部命令，<code>ls</code> 查看这里有什么，<code>codes</code> 看口袋里的钟码。
     </div>
     <div class="tut-step">
-      <strong>解谜思路</strong><br>
-      格雷（你）和苔丝各持一半线索——她那边有一个数字，你这边有一件上锁的物件。写信互通消息，把两端的信息拼在一起，才能打开锁。<br>
-      密码格式：在镜语里输入 <code>decrypt &lt;物件名&gt; &lt;密码&gt;</code> 来解锁。
+      <strong>数字根是什么？</strong><br>
+      把几个钟码加在一起，若结果超过一位数，就再把各位相加，直到只剩一位——这就是<em>数字根</em>。<br>
+      例：<code>1 + 8 + 6 = 15 → 1 + 5 = 6</code>，数字根是 <strong>6</strong>。<br>
+      镇子里被卡住的每扇门都刻着<span class="tut-tag">根数</span>和<span class="tut-tag">契数</span>，凑出「数字根 = 根数、且个数 = 契数」的钟码组合，门就开。解法不唯一。<br>
+      开门命令：<code>open 门名 钟码...</code>（例如 <code>open 井边锈铁盒 1 8</code>）。<br>
+      顶部「钟码算盘」按钮可以打开可视化计算器，亲手归约验证。
     </div>
     <div class="tut-step">
       <strong>最后一件事</strong><br>
-      故事有三封关键的信，每封信都有预填草稿——直接投出即可，你随时可以加上自己的话。<br>
-      左上角的<span class="tut-tag">⟳ 镜面状态</span>随时查看进度。
+      格雷和苔丝各持一半钟码，必须写信互通，才能凑齐开门的组合。<br>
+      故事有三封关键的信，每封都有预填草稿，直接投出即可。<br>
+      左侧<span class="tut-tag">镜面状态</span>随时查看进度。
     </div>
     <button class="action-btn" id="tutorial-close" onclick="closeTutorial()">明白了，开始探索</button>
   </div>
@@ -319,9 +372,13 @@
    2) "存档/读档"仍包装成收发文字，但改叫「写信 / 看信」，
       对应故事里"对着镜子写字，等雾气显字回信"的设定。
    3) 反钟镇 = 蓝色 UI（默认起始）；苔丝的阁楼 = 绿色 UI。
-   4) 玩法结构与原骨架一致：读完格雷的引导信 → 解锁【写一段话】→
-      两边互相提供解谜数字 → 打开两件上锁的物件 →
-      格雷把真相写信投出 → 触发结局。
+   4) 玩法结构：读完格雷的引导信 → 解锁【写一段话】→
+      两边物件里藏着「钟码」（0-9数字碎片）→ 用数字根统一规则
+      开四扇门 → 三封信推进和解 → 触发结局。
+   5) 解谜统一为「数字根」：所有门只认一条规则——把选中的
+      钟码加总，若结果是多位数就再把各位相加，直到剩一位数，
+      这就是数字根。每扇门刻着【根数】+【契数】（要用几个钟码），
+      凑对即可，解法不唯一。配一个可视化「钟码算盘」辅助归约。
    ========================================================= */
 
 // ---------- 状态（localStorage 持久化，方便调试/重开） ----------
@@ -341,16 +398,19 @@ function defaultState(){
     crossUnlocked: false,     // 是否已解锁镜子两端互看（第一次投信后为 true）
     tutorialSeen: false,      // 是否已看过新手指引（镜子的使用说明）
     flags: {
-      gotAccessCode: false,     // 苔丝（阁楼）是否已看过旧怀表说明卡，得到数字
-      decryptedReport: false,   // 格雷（反钟镇）是否已打开"争执记录"
+      gotAccessCode: false,     // 苔丝（阁楼）是否已看过旧怀表说明卡（收集钟码 1、8）
+      watchedVideo: false,      // 苔丝（阁楼）是否已看过老照片（收集钟码 6、0）
+      decryptedReport: false,   // 格雷（反钟镇）是否已打开"井边锈铁盒"（得到争执记录）
+      decryptedDiary: false,    // 格雷（反钟镇）是否已打开"格雷日记木箱"（得到格雷日记）
+      openedTreeHole: false,    // 格雷（反钟镇）是否已打开"时间树树洞"（得到年轮真相）
+      clockTicked: false,       // 格雷（反钟镇）是否已打开"钟楼齿轮闸"（钟走了一分钟）
       ideaRequested: false,     // 格雷是否已写信求助（争执真相→求点子）
       ideaReceived: false,      // 苔丝是否已把"续杯邀请函"的点子写信送回反钟镇
       reportSent: false,        // 格雷是否已把"成功了"的最终回信送出（触发结局）
       endingSeen: false,
-      watchedVideo: false,      // 苔丝（阁楼）是否已看过老照片（得到另一串数字）
-      decryptedDiary: false,    // 格雷（反钟镇）是否已打开"格雷日记"
       sawPhoto: false,          // 格雷（反钟镇）是否已看过井边的怪照片
     },
+    codes: [],        // 已收集的「钟码」数字碎片（0-9，去重），跨两端共享
     sentMails: [],   // 两个世界之间来回的信 {fromTl,toTl,subject,body,time,isEnding,read}
     filesRead: {},   // 已读物件 key: `${tl}:${name}`
   };
@@ -366,6 +426,7 @@ function loadState(){
       const merged = defaultState();
       Object.assign(merged, parsed);
       merged.flags = Object.assign(defaultState().flags, parsed.flags || {});
+      merged.codes = Array.isArray(parsed.codes) ? parsed.codes : [];
       return merged;
     }
   }catch(e){}
@@ -422,22 +483,31 @@ function getFiles(tl){
       },
       {
         name: "旧怀表的说明卡.txt", locked:false,
+        codes: [1, 8],
         quip:"停在六点的表，配上'欠着一杯茶'——这镜子那头的镇子，多半也卡在同一个点上。", mood:"creepy",
-        content: "系在一只停摆怀表链子上的泛黄纸卡：\n『这只表,我说什么也不肯走了。表盘停在——18:00。若有谁能让它重新走动,那这镇子里欠着的一杯茶,也该续上了。』\n落款被虫蛀掉了一半,只留得一个'六'字的偏旁。",
+        content: "系在一只停摆怀表链子上的泛黄纸卡：\n『这只表,我说什么也不肯走了。表盘停在——18:00。若有谁能让它重新走动,那这镇子里欠着的一杯茶,也该续上了。』\n落款被虫蛀掉了一半,只留得一个'六'字的偏旁。\n\n（你盯着那行『18:00』看了好一会儿——两个数字，一和八，像两片碎掉的钟码。）",
         onRead(){ state.flags.gotAccessCode = true; }
       },
       {
         name: "奶奶的购物清单.txt", locked:false,
+        codes: [7],
         quip:"奶奶买司康饼粉的执念，跟镜子那头吃不完的司康饼，是不是有点缘分。", mood:"normal",
-        content: "压在抽屉最底层的一张纸：\n司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉\n黄油　少许\n果酱　随意\n（写着写着好像陷进去出不来了，最后歪歪扭扭地补了一句：算了，直接多买点吧。）"
+        content: "压在抽屉最底层的一张纸：\n司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉、司康饼粉\n黄油　少许\n果酱　随意\n（写着写着好像陷进去出不来了，最后歪歪扭扭地补了一句：算了，直接多买点吧。）\n\n（司康饼粉，从头数到尾，正好七遍。七——又一片钟码。）"
+      },
+      {
+        name: "妈妈的字条.txt", locked:false,
+        codes: [3],
+        quip:"妈妈的字条总像在哄小孩——可'星期三'三个字，这会儿读着，跟暗号似的。", mood:"normal",
+        content: "贴在梳妆镜角上、被水汽洇软了的一张小字条：\n『苔丝，星期三放学后别乱跑，阁楼那台钟又该修了，妈妈晚点回来。』\n\n（星期三——一星期里的第三天。三。你默默把它也记成了钟码。）"
       },
       {
         name: "老照片.jpg", locked:false,
         mediaType:"image",
         mediaName:"image/old_photo_clock.jpg",
         mediaHint:"建议素材：一张泛黄的老照片，拍的是阁楼一角一台停摆的落地钟，钟面裂了一道缝，指针卡在六点和六点零一分之间；照片边角有铅笔写的小字。",
+        codes: [6, 0],
         quip:"06:01——比六点多一分钟而已，这算盘打得，倒是挺细。", mood:"creepy",
-        content: "一张压在相册最后一页的老照片：\n拍的是这台阁楼里的旧落地钟,钟面裂了一道缝,两根指针卡在六点刚过一点点的地方,动弹不得。\n照片背面,铅笔字写着：\n\n    如果它能走完这一分钟就好了——06:01\n\n字迹很旧,力道很轻,像是写字的人,其实并不抱太大希望。",
+        content: "一张压在相册最后一页的老照片：\n拍的是这台阁楼里的旧落地钟,钟面裂了一道缝,两根指针卡在六点刚过一点点的地方,动弹不得。\n照片背面,铅笔字写着：\n\n    如果它能走完这一分钟就好了——06:01\n\n字迹很旧,力道很轻,像是写字的人,其实并不抱太大希望。\n\n（『06:01』——零、六、零、一。你数了数，这里藏着两片钟码：六，还有零。）",
         onRead(){ state.flags.watchedVideo = true; }
       },
     ];
@@ -445,31 +515,44 @@ function getFiles(tl){
     return [
       {
         name: "邮差须知.txt", locked:false,
-        quip:"合着连撬锁密码都写在门后，这镇子的保密意识，约等于零。", mood:"normal",
-        content: "钉在木屋门后的旧木牌：\n每天黄昏,把田里稻草人怀里的纸条,一张张送到镇子中央的井边投进去,当天的差事就算办完。\n\n（备注：井边石缝里那只锈铁盒子,不该随便撬开——真要撬,密码是……大摆钟停下来那一刻,表盘上的数字。自己去找。）"
+        codes: [5],
+        quip:"合着连开门密码都写在门后，这镇子的保密意识，约等于零。", mood:"normal",
+        content: "钉在木屋门后的旧木牌：\n每天黄昏,把田里稻草人怀里的纸条,一张张送到镇子中央的井边投进去,当天的差事就算办完。\n\n（备注：井边石缝里那只锈铁盒子,不该随便撬开——真要开,盒子盖子上刻着「根数九,契数二」。大摆钟停下来那一刻,表盘上有个数,自己去找。）\n\n（木牌左下角一行蝇头小字：今天要送五户人家的纸条。五——你把它记成了一片钟码。）"
       },
       {
         name: "涂鸦手账.txt", locked:false,
+        codes: [4],
         quip:"字迹越写越像是自己在跟自己抢答案，倒着活也真是不容易。", mood:"creepy",
-        content: "随手写在手账边角的字迹：\n\n茶要凉了茶要凉了茶要凉了茶要凉了茶要凉了茶要凉了\n\n（好奇怪，这句话我明明还没写，怎么已经写了这么多遍？算了，倒着长记性的镇子，见怪不怪。）\n\n司康饼今天好像终于要吃完了，也不知道是不是我记错了方向。"
+        content: "随手写在手账边角的字迹：\n\n茶要凉了 茶要凉了 茶要凉了 茶要凉了\n\n（好奇怪，这句话我明明还没写，怎么已经写了这么多遍？算了，倒着长记性的镇子，见怪不怪。）\n\n司康饼今天好像终于要吃完了，也不知道是不是我记错了方向。\n\n（『茶要凉了』，数一数，正好四遍。四——又一片钟码。）"
       },
       {
         name: state.flags.decryptedReport ? "争执记录.txt" : "争执记录.enc",
         locked: !state.flags.decryptedReport,
+        codes: [9],
         quip: state.flags.decryptedReport ? "原来我们镇子被困住，不是什么惊天动地的诅咒，就是两个爱面子的家伙谁也不肯先服软而已。" : undefined,
         mood: state.flags.decryptedReport ? "normal" : undefined,
         content: state.flags.decryptedReport
-          ? "[已上锁的盒子打开了]\n大摆钟脾气不坏,只是特别在意公平；六点先生总嫌大家吃得慢,爱提前拨快指针。\n有一天六点先生又来催,大摆钟卸下齿轮塞给他：『你自己去伺候得了！』六点先生也不服软：『好啊，那你自己待着吧，待到地老天荒！你手底下这些人,谁也别想好好地往前记事儿了！』\n两位都后悔了——可惜吵架说出去的话,跟司康饼上的糖霜一样,收不回来了。\n\n如果镜子外头有人在看——你那边，会不会正好有什么办法，能让两个死要面子的家伙，体面地和好？"
-          : "[已上锁] 使用命令解密： decrypt 争执记录 <四位数字>"
+          ? "[井边锈铁盒里的纸卷展开了]\n大摆钟脾气不坏,只是特别在意公平；六点先生总嫌大家吃得慢,爱提前拨快指针。\n有一天六点先生又来催,大摆钟卸下齿轮塞给他：『你自己去伺候得了！』六点先生也不服软：『好啊，那你自己待着吧，待到地老天荒！你手底下这些人,谁也别想好好地往前记事儿了！』\n两位都后悔了——可惜吵架说出去的话,跟司康饼上的糖霜一样,收不回来了。\n\n（纸卷右下角，一个孤零零的数字：9。十八点——一加八得九。这是整场争执的数字根。你又记下一片钟码。）\n\n如果镜子外头有人在看——你那边，会不会正好有什么办法，能让两个死要面子的家伙，体面地和好？"
+          : "[已上锁] 需要先打开井边的锈铁盒，这卷纸才拿得出来。命令： open 井边锈铁盒 <钟码...>"
       },
       {
         name: state.flags.decryptedDiary ? "格雷日记.txt" : "格雷日记.enc",
         locked: !state.flags.decryptedDiary,
+        codes: [7],
         quip: state.flags.decryptedDiary ? "原来这本日记，是写给'我'自己的——只是那个'我'，恰好是镜子外头的一个陌生人。" : "又是一件锁着的东西，合着这镇子就没几样能直接看的。",
         mood: state.flags.decryptedDiary ? "normal" : "normal",
         content: state.flags.decryptedDiary
-          ? "[已上锁的本子打开了]\n我发现,我时不时会忘记一件昨天还记得的事——这地方的记忆是倒着长的,越住得久,越说不准哪天会把重要的事,倒着弄丢。\n\n我把这句话留在这儿,也不知道写给谁看：\n总有一天,会有一个『正着长记忆』的人,出现在这面镜子那头。到时候,好好谢谢人家——TA大概能帮我们把这钟,拨回去一点点。"
-          : "[已上锁] 使用命令解密： decrypt 格雷日记 <四位数字>（提示：数字曾出现在镜子另一头的某张老照片里）"
+          ? "[床底木箱里的本子打开了]\n我发现,我时不时会忘记一件昨天还记得的事——这地方的记忆是倒着长的,越住得久,越说不准哪天会把重要的事,倒着弄丢。\n\n我把这句话留在这儿,也不知道写给谁看：\n总有一天,会有一个『正着长记忆』的人,出现在这面镜子那头。到时候,好好谢谢人家——TA大概能帮我们把这钟,拨回去一点点。\n\n（扉页上写着：六月一日，第七天。零六零一——根数是七。七，记下。）"
+          : "[已上锁] 需要先打开床底的木箱，这本日记才翻得开。命令： open 格雷日记木箱 <钟码...>（提示：数字曾出现在镜子另一头的某张老照片里）"
+      },
+      {
+        name: state.flags.openedTreeHole ? "时间树的年轮.txt" : "时间树的年轮.enc",
+        locked: !state.flags.openedTreeHole,
+        quip: state.flags.openedTreeHole ? "原来这整棵树，都是倒着长的——怪不得这镇子的记忆也倒着走。" : "树洞里的东西，得先把洞口那层薄冰化开才拿得到。",
+        mood: state.flags.openedTreeHole ? "creepy" : "normal",
+        content: state.flags.openedTreeHole
+          ? "[树洞里的树皮卷展开了]\n这卷树皮上,一圈一圈的年轮,是从外往里长的——最外面那一圈,反倒是这棵树最早的一天。\n倒着长的不只是我的记性,连这棵时间树,都在往回走。\n\n所以啊,只要让钟往前走哪怕一分钟,这整座镇子,兴许就会跟着它,一起想起来该怎么正常地过下去。\n\n（树皮上刻着一行小字：往前走，别回头。）"
+          : "[已上锁] 树洞口结着一层会反光的薄冰。命令： open 时间树树洞 <钟码...>"
       },
       {
         name: "井边的怪照片.jpg", locked: !state.flags.decryptedDiary,
@@ -544,7 +627,7 @@ function renderFiles(fileToOpen){
   if(fileToOpen){
     const f = files.find(x => x.name === fileToOpen);
     if(f && !f.locked){
-      markFileRead(f);
+      const newCodes = markFileRead(f);
       mainEl.innerHTML = `
         <div class="panel-title">物件 // ${state.timeline === "A" ? DATE_A_SHORT : DATE_B_SHORT}</div>
         <span class="back-link" onclick="renderFiles()">&laquo; 返回物件列表</span>
@@ -552,6 +635,9 @@ function renderFiles(fileToOpen){
         <div class="doc-view">${escapeHtml(f.content)}</div>
       `;
       showQuip(f.quip || randomQuip("file"), f.mood || "normal");
+      if(newCodes.length){
+        setTimeout(() => showQuip(`你记下了钟码：${newCodes.join("、")}（输入 codes 可查看全部）`, "normal"), 2600);
+      }
       return;
     }
   }
@@ -564,7 +650,7 @@ function renderFiles(fileToOpen){
         ${f.locked ? '<span class="tag">上锁</span>' : (f.mediaType ? `<span class="tag">${f.mediaType==="video"?"影像":"照片"}</span>` : "")}
       </div>
     `).join("")}
-    <div class="hint">提示：在「镜语」里可以用 <b>ls</b> 看看有什么物件、<b>cat 名称</b> 细看、<b>decrypt 名称 数字</b> 打开上锁的物件。</div>
+    <div class="hint">提示：在「镜语」里可以用 <b>ls</b> 看看有什么物件、<b>cat 名称</b> 细看、<b>codes</b> 看口袋里的钟码、<b>open 门名 钟码...</b> 开门。</div>
   `;
 }
 
@@ -585,11 +671,21 @@ function renderMediaBox(f){
 
 function markFileRead(f){
   const key = `${state.timeline}:${f.name}`;
+  const newCodes = [];
   if(!state.filesRead[key]){
     state.filesRead[key] = true;
     if(typeof f.onRead === "function") f.onRead();
+    if(Array.isArray(f.codes)){
+      f.codes.forEach(c => {
+        if(!state.codes.includes(c)){
+          state.codes.push(c);
+          newCodes.push(c);
+        }
+      });
+    }
     saveState();
   }
+  return newCodes;
 }
 
 function escapeHtml(str){
@@ -601,8 +697,8 @@ const QUIP_POOL = {
   mail: ["已读。这信写得，比镇上的公告牌靠谱多了。","一封信而已，慌什么——我见过比这更离谱的邀请函，还是我自己写的。","收到，继续办差事，反正也没有司康饼在等着。","这年头，连镜子写信都比某些人靠谱。"],
   file: ["字不少，但读起来比数学作业有意思多了。","继续翻，说不定下一页就写着'恭喜你，谜底揭晓'。","这种阅读速度，拿去对付作业该多好。"],
   fileLocked: ["锁上了——跟我数学作业的解法一样，锁得死死的。","上锁？合着连一张纸条都要卷密码。"],
-  decryptFail: ["数字不对——白激动一场，血压算是白升了。"],
-  decryptOk: ["解开了！好奇心这东西，跟司康饼一样，一上头就停不下来。"],
+  decryptFail: ["根数对不上——这组合还得再凑一凑。","白激动一场，血压算是白升了。换个组合试试。"],
+  decryptOk: ["门开了！数字根这套把戏，一上手就停不下来。"],
 };
 let quipTimer = null;
 function showQuip(text, mood){
@@ -767,6 +863,9 @@ function defaultDraft(){
   }
   // 第三步：格雷把邀请函送出去，试过之后回信报喜（触发真正的结局）
   if(state.timeline === "B" && state.flags.ideaReceived && !state.flags.reportSent){
+    if(!state.flags.clockTicked){
+      return "苔丝的点子到了——「续杯茶会」，不是道歉，是续杯，这个冠冕堂皇的借口，太妙了。\n\n可我捧着邀请函走到钟楼前才想起来：大摆钟还卡在六点呢，齿轮闸不打开，这茶会也开不起来。\n\n（先去钟楼看看那道齿轮闸吧——它刻着「根数九，契数四」。得先把钟往前拨一分钟。）";
+    }
     return "成了！我把你的邀请函念给大摆钟和六点先生听，他们谁也没提“和好”两个字，谁也没说“对不起”，就这么揣着“续杯”这个冠冕堂皇的借口，重新坐下喝茶了。\n钟走到六点零一分了！司康饼也终于能吃完了！我现在正“正着”经历这一切，这种感觉太奇怪了——原来“正常地往前走”，是这个滋味啊。\n谢谢你的主意。虽然我很确定，这封邀请函荒唐得不像话——可它偏偏就成了。";
   }
   if(state.timeline === "B" && !state.crossUnlocked){
@@ -784,13 +883,18 @@ function sendComposedMail(){
   if(!text) return;
 
   const fromTl = state.timeline;
+  // 想报喜但钟还没走起来：先拦一下，提示去开齿轮闸
+  if(fromTl === "B" && state.flags.ideaReceived && !state.flags.reportSent && !state.flags.clockTicked){
+    showQuip("先别急着投——钟楼的齿轮闸还卡着，钟没走起来，这喜还报不成。用「open 钟楼齿轮闸 <钟码...>」把钟往前拨一分钟。", "fail");
+    return;
+  }
   const toTl = fromTl === "A" ? "B" : "A";
   const firstTime = !state.crossUnlocked;
 
   // 三步书信链，对应完整剧情：① 格雷求点子 → ② 苔丝支招（续杯邀请函）→ ③ 格雷报喜（结局）
   const isAskIdeaMail = fromTl === "B" && state.flags.decryptedReport && !state.flags.ideaRequested;
   const isIdeaReplyMail = fromTl === "A" && state.flags.ideaRequested && !state.flags.ideaReceived;
-  const isFinalReportMail = fromTl === "B" && state.flags.ideaReceived && !state.flags.reportSent;
+  const isFinalReportMail = fromTl === "B" && state.flags.ideaReceived && !state.flags.reportSent && state.flags.clockTicked;
 
   let subject = firstTime ? "第一次投进镜子里的话" : "捎来的话";
   if(isAskIdeaMail) subject = "关于那场争执，我都搞清楚了";
@@ -844,19 +948,27 @@ function nowLabel(){
 // ---- 镜面状态面板 ----
 function renderSystem(){
   const f = state.flags;
+  const doorRows = Object.keys(DOORS).map(name => {
+    const d = DOORS[name];
+    return `<div class="flag-row"><span>门 · ${name}（根数${d.root}·契数${d.count}）</span><span class="flag-val ${f[d.doneFlag]?"on":"off"}">${f[d.doneFlag]?"已开":"未开"}</span></div>`;
+  }).join("");
+  const codeStr = state.codes.length ? state.codes.slice().sort((a,b)=>a-b).join("、") : "（空）";
   mainEl.innerHTML = `
     <div class="panel-title">镜面状态</div>
-    <div class="flag-row"><span>苔丝已找到怀表密码</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>苔丝已看过老照片</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>格雷已解开争执记录</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>格雷已翻开自己的日记</span><span class="flag-val ${f.decryptedDiary?"on":"off"}">${f.decryptedDiary?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>格雷已看到井边的怪照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>─ 第一封信：格雷写信求点子</span><span class="flag-val ${f.ideaRequested?"on":"off"}">${f.ideaRequested?"已发出":"未发出"}</span></div>
-    <div class="flag-row"><span>─ 第二封信：苔丝支招（续杯邀请函）</span><span class="flag-val ${f.ideaReceived?"on":"off"}">${f.ideaReceived?"已发出":"未发出"}</span></div>
-    <div class="flag-row"><span>─ 第三封信：格雷报喜（触发结局）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"已发出":"未发出"}</span></div>
+    <div class="flag-row"><span>已收集钟码（${state.codes.length} 个）</span><span class="flag-val on">${codeStr}</span></div>
+    <div style="margin:8px 0 4px;font-size:11px;opacity:.5;letter-spacing:1px;">— 四扇门 —</div>
+    ${doorRows}
+    <div style="margin:8px 0 4px;font-size:11px;opacity:.5;letter-spacing:1px;">— 收集进度 —</div>
+    <div class="flag-row"><span>苔丝看过旧怀表说明卡</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>苔丝看过老照片</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>格雷看过井边的怪照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
+    <div style="margin:8px 0 4px;font-size:11px;opacity:.5;letter-spacing:1px;">— 三封信 —</div>
+    <div class="flag-row"><span>第一封：格雷写信求点子</span><span class="flag-val ${f.ideaRequested?"on":"off"}">${f.ideaRequested?"已发出":"未发出"}</span></div>
+    <div class="flag-row"><span>第二封：苔丝支招（续杯邀请函）</span><span class="flag-val ${f.ideaReceived?"on":"off"}">${f.ideaReceived?"已发出":"未发出"}</span></div>
+    <div class="flag-row"><span>第三封：格雷报喜（触发结局）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"已发出":"未发出"}</span></div>
     <div class="flag-row"><span>镜子两端已连通</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
     <div class="flag-row"><span>【写一段话】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
-    <div class="hint">三封信是本作的完整剧情链：① 格雷解开争执记录 → 写信求点子；② 苔丝想到续杯邀请函 → 回信支招；③ 格雷把邀请函送出去 → 钟走起来了 → 写信报喜（结局）。每封信都对应写信界面的预填草稿，直接投出即可。</div>
+    <div class="hint">流程：读两端物件收集钟码 → 在反钟镇用 <b>open 门名 钟码...</b> 开四扇门（数字根 = 根数、个数 = 契数）→ 开井边锈铁盒得争执记录 → 写信求点子 → 苔丝支招 → 开钟楼齿轮闸让钟走起来 → 写信报喜（结局）。</div>
     <div style="margin-top:24px;">
       <button class="action-btn" onclick="if(confirm('确定要重置全部进度吗？')){localStorage.removeItem('${STORAGE_KEY}');location.reload();}">重置存档</button>
     </div>
@@ -866,23 +978,83 @@ function renderSystem(){
 // ---- 镜语（终端） ----
 let termHistory = [];
 
-// 可打开物件配置表（供 decrypt 命令通用查找）
-const DECRYPT_TARGETS = {
-  "争执记录": {
-    password: "1800",
-    prereqFlag: "gotAccessCode",
-    prereqHint: "数字对不上——你好像还不知道那只停摆的怀表，表盘定格在几点。（提示：去『阁楼』那侧找找旧怀表的说明卡）",
+// ---------- 数字根：全游戏唯一的解谜规则 ----------
+// 把一串数字加总，若结果超过一位数，就把各位再加，直到只剩一位。
+function digitalRoot(nums){
+  let sum = nums.reduce((a,b) => a + b, 0);
+  while(sum > 9){
+    sum = String(sum).split("").reduce((a,b) => a + Number(b), 0);
+  }
+  return sum;
+}
+
+// ---------- 门配置表（只存在于反钟镇一侧） ----------
+// 每扇门刻着【根数 root】+【契数 count】：用恰好 count 个、且都已收集的钟码，
+// 凑出「数字根 = root」，门就开。解法不唯一。
+const DOORS = {
+  "井边锈铁盒": {
+    root: 9, count: 2,
+    desc: "井边石缝里的一只锈铁盒。盖子上刻着：「根数九，契数二。」旁边歪歪扭扭补了句：大摆钟停下来那一刻，表盘上有个数。",
     doneFlag: "decryptedReport",
-    successMsg: "锁开了。物件已生成：争执记录.txt",
+    successMsg: "铁盒「咔哒」弹开了。里面卷着一份争执记录。物件已解锁：争执记录.txt",
   },
-  "格雷日记": {
-    password: "0601",
-    prereqFlag: "watchedVideo",
-    prereqHint: "数字对不上——你好像还没看过什么能提示这串数字的东西。（提示：去『阁楼』那侧看看那张老照片）",
+  "格雷日记木箱": {
+    root: 7, count: 2,
+    desc: "床底一只上了锁的木箱。锁盘上刻着：「根数七，契数二。」箱角有行铅笔字：数字藏在一张老照片的背面。",
     doneFlag: "decryptedDiary",
-    successMsg: "锁开了。物件已生成：格雷日记.txt",
+    successMsg: "木箱打开了。里面躺着一本日记。物件已解锁：格雷日记.txt",
+  },
+  "时间树树洞": {
+    root: 6, count: 3,
+    desc: "时间树的树干上有一处树洞，洞口结着一层会反光的薄冰。冰面上刻着：「根数六，契数三。」",
+    doneFlag: "openedTreeHole",
+    successMsg: "薄冰「嘶」地化开了。树洞深处藏着一卷树皮。物件已解锁：时间树的年轮.txt",
+  },
+  "钟楼齿轮闸": {
+    root: 9, count: 4,
+    desc: "钟楼底部一道咬死的齿轮闸。闸门上刻着：「根数九，契数四。」旁边一行褪色小字：钟要往前走，得先把这一分钟补上。",
+    doneFlag: "clockTicked",
+    successMsg: "齿轮闸「咯吱咯吱」转了起来——钟楼里的大摆钟重重颤了一下，卡了不知多久的指针，往前挪了一分钟，停在了六点零一分。",
   },
 };
+
+// 当前侧可见的门（只有反钟镇有门）
+function getDoors(tl){
+  return tl === "B" ? Object.keys(DOORS) : [];
+}
+
+// 校验并尝试开门：返回 {ok, msg, cls}
+function tryOpenDoor(name, digits){
+  const door = DOORS[name];
+  if(!door) return { ok:false, msg:`这附近没有叫「${escapeHtml(name)}」的门。`, cls:"cmd-err" };
+  if(state.flags[door.doneFlag]) return { ok:false, msg:`这扇门已经开过了，去「物件」里翻翻里面的东西吧。`, cls:"cmd-ok" };
+
+  const nums = digits.map(d => Number(d));
+  if(nums.some(n => isNaN(n) || n < 0 || n > 9)) return { ok:false, msg:`钟码只能是 0–9 的单个数字。`, cls:"cmd-err" };
+
+  // 校验：每个数字都必须在已收集钟码里（按数量匹配）
+  const pool = state.codes.slice();
+  const missing = [];
+  for(const n of nums){
+    const idx = pool.indexOf(n);
+    if(idx === -1) missing.push(n);
+    else pool.splice(idx, 1);
+  }
+  if(missing.length){
+    return { ok:false, msg:`你还没收集到钟码：${missing.join("、")}。多去翻翻「物件」里的文字，数字都藏在里面。`, cls:"cmd-err" };
+  }
+  if(nums.length !== door.count){
+    return { ok:false, msg:`这扇门刻着「契数 ${door.count}」，要恰好 ${door.count} 个钟码；你给了 ${nums.length} 个。`, cls:"cmd-err" };
+  }
+  const root = digitalRoot(nums);
+  if(root !== door.root){
+    return { ok:false, msg:`数字根算出来是 ${root}，可这扇门刻的是「根数 ${door.root}」——还差一点。试试别的组合，或用 <b>root</b> 自己验证。`, cls:"cmd-err" };
+  }
+
+  state.flags[door.doneFlag] = true;
+  saveState();
+  return { ok:true, msg:door.successMsg, cls:"cmd-ok" };
+}
 
 function renderTerminal(){
   mainEl.innerHTML = `
@@ -932,56 +1104,92 @@ function runCommand(raw){
   if(verb === "help"){
     pushLog(
 `可用命令：
-  ls                     看看这边有什么物件
-  cat &lt;名称&gt;              细看某个物件
-  decrypt &lt;名称&gt; &lt;数字&gt;    用数字打开上锁的物件（仅反钟镇一侧可用）
-  whoami                 试着想起自己是谁
-  clear                  把这些话从镜面上擦掉
+  ls                      看看这边有什么物件、哪几扇门
+  cat &lt;名称&gt;               细看某个物件（或某扇门的刻字）
+  codes                    看看口袋里收集到了哪些钟码
+  root &lt;数字...&gt;            试算一串数字的数字根
+  open &lt;门名&gt; &lt;钟码...&gt;     用钟码开门（仅反钟镇一侧可用）
+  whoami                   试着想起自己是谁
+  clear                    把这些话从镜面上擦掉
 
-提示：写信 / 看信请去左侧「书信」；照片类物件用 cat 只能看文字描述，完整画面请去「物件」面板查看。`, "cmd-ok");
+开门规则：每扇门刻着【根数】和【契数】。挑恰好「契数」个已收集的钟码，
+让它们的「数字根」等于「根数」，门就开。解法不唯一。
+提示：写信 / 看信请去左侧「书信」；顶部「钟码算盘」可以可视化试算。`, "cmd-ok");
   }
   else if(verb === "ls"){
-    pushLog(files.map(f => {
+    const doorLines = getDoors(state.timeline).map(name => {
+      const d = DOORS[name];
+      const opened = state.flags[d.doneFlag];
+      return `${opened ? "🚪" : "🔒"} ［门］${name}${opened ? "（已开）" : `（根数${d.root}·契数${d.count}）`}`;
+    });
+    const fileLines = files.map(f => {
       const icon = f.locked ? "🔒" : (f.mediaType === "video" ? "🎞" : f.mediaType === "image" ? "🖼" : "📄");
       return `${icon} ${f.name}`;
-    }).join("\n"));
+    });
+    pushLog([...doorLines, ...fileLines].join("\n") || "（这边空空的，什么都没有）");
   }
   else if(verb === "cat"){
     const name = parts.slice(1).join(" ");
+    const door = DOORS[name];
+    if(door){
+      const opened = state.flags[door.doneFlag];
+      pushLog(`［门］${escapeHtml(name)} ${opened ? "（已开）" : `（根数 ${door.root} · 契数 ${door.count}）`}`, "cmd-echo");
+      pushLog(escapeHtml(door.desc));
+      if(!opened) pushLog(`用法：open ${escapeHtml(name)} <${door.count} 个钟码>`, "cmd-echo");
+      return;
+    }
     const f = files.find(x => x.name === name);
     if(!f){ pushLog(`找不到这个物件：${escapeHtml(name)}`, "cmd-err"); }
     else if(f.locked){ pushLog(`这东西还锁着，没法直接看：${escapeHtml(name)}`, "cmd-err"); }
     else{
-      markFileRead(f);
+      const newCodes = markFileRead(f);
       pushLog(escapeHtml(f.content));
+      if(newCodes.length) pushLog(`<b>你记下了钟码：${newCodes.join("、")}</b>（输入 codes 可查看全部）`, "cmd-ok");
       if(f.mediaType){
         pushLog(`（提示：该物件包含${f.mediaType==="video"?"影像":"照片"}素材，去「物件」面板可以看到画面占位）`, "cmd-echo");
       }
       showQuip(f.quip || randomQuip("file"), f.mood || "normal");
     }
   }
-  else if(verb === "decrypt"){
+  else if(verb === "codes"){
+    if(!state.codes.length){ pushLog("口袋里还空着。去读读「物件」里那些文字，数字碎片（钟码）就藏在字里行间。", "cmd-echo"); }
+    else pushLog(`已收集的钟码（${state.codes.length} 个）：\n${state.codes.slice().sort((a,b)=>a-b).join("　")}`, "cmd-ok");
+  }
+  else if(verb === "root"){
+    const digits = parts.slice(1);
+    if(!digits.length){ pushLog("用法：root <数字...>（例如： root 1 8 6）", "cmd-err"); }
+    else{
+      const nums = digits.map(d => Number(d));
+      if(nums.some(n => isNaN(n) || n < 0 || n > 9)){ pushLog("只能输入 0–9 的单个数字。", "cmd-err"); }
+      else{
+        const sum = nums.reduce((a,b)=>a+b,0);
+        const root = digitalRoot(nums);
+        let steps = `${nums.join(" + ")} = ${sum}`;
+        if(sum > 9) steps += ` → ${String(sum).split("").join(" + ")} = ${root}`;
+        pushLog(`${steps}\n数字根 = <b>${root}</b>`, "cmd-ok");
+        // 教学彩蛋：0 和 9 不改变数字根
+        if(nums.some(n => n === 0 || n === 9) && nums.length > 1){
+          pushLog("（小提示：注意到没有？往组合里塞一个 0 或 9，数字根往往不变——这是钟码最会骗人的地方。）", "cmd-echo");
+        }
+      }
+    }
+  }
+  else if(verb === "open"){
     if(state.timeline !== "B"){
-      pushLog("镜子照进" + DATE_A_SHORT + "这一侧，没有需要打开的上锁物件。", "cmd-err");
+      pushLog("镜子照进" + DATE_A_SHORT + "这一侧，没有需要打开的门。门都在反钟镇那头。", "cmd-err");
     }else{
       const name = parts[1];
-      const code = parts[2];
-      const target = DECRYPT_TARGETS[name];
-      if(!name || !code){ pushLog("用法：decrypt <名称> <四位数字>", "cmd-err"); }
-      else if(!target){ pushLog(`找不到能打开的物件：${escapeHtml(name)}`, "cmd-err"); }
-      else if(state.flags[target.doneFlag]){ pushLog(`这东西已经打开过了，用 cat ${name}.txt 看看。`, "cmd-ok"); }
-      else if(!state.flags[target.prereqFlag]){
-        pushLog(target.prereqHint, "cmd-err");
-        showQuip(randomQuip("decryptFail"), "fail");
-      }
-      else if(code === target.password){
-        state.flags[target.doneFlag] = true;
-        saveState();
-        pushLog(target.successMsg, "cmd-ok");
-        showQuip(randomQuip("decryptOk"), "ok");
-      }else{
-        pushLog("数字不对。", "cmd-err");
-        showQuip(randomQuip("decryptFail"), "fail");
+      const digits = parts.slice(2);
+      if(!name || !digits.length){ pushLog("用法：open <门名> <钟码...>（例如： open 井边锈铁盒 1 8）", "cmd-err"); }
+      else{
+        const res = tryOpenDoor(name, digits);
+        pushLog(res.msg, res.cls);
+        if(res.ok){
+          showQuip(randomQuip("decryptOk"), "ok");
+          renderNavDots();
+        }else if(res.cls === "cmd-err"){
+          showQuip(randomQuip("decryptFail"), "fail");
+        }
       }
     }
   }
@@ -1030,8 +1238,91 @@ function triggerEnding(){
     extra = "\n\n后来我才想明白，井水里那道多出来的轮廓，大概就是隔着一整面镜子，正在读这段话的另一个人。";
   }
   $("#ending-text").textContent =
-    "一面镜子，两个世界，一场谁也不肯先服软的争执。\n我们隔着一整场“倒着长的记忆”，用一封又一封荒唐的信，把事情，慢慢拼对了。" + extra + "\n\n（镜中来客 · 苔丝与反钟镇 · 可玩骨架 Demo · 完）";
+    "一面镜子，两个世界，一场谁也不肯先服软的争执。\n我们隔着一整场“倒着长的记忆”，把散落的钟码一片片归约成同一个数字，再用一封又一封荒唐的信，把事情，慢慢拼对了。" + extra + "\n\n（镜中来客 · 苔丝与反钟镇 · 可玩骨架 Demo · 完）";
   $("#ending").classList.add("show");
+}
+
+// ---- 钟码算盘（数字根可视化计算器） ----
+let calcSelection = [];   // 当前输入的钟码组合
+let calcDoor = null;      // 当前对照门名
+let calcStepsHtml = "";   // 求根后的步骤/结果展示
+
+function openCalc(){
+  renderCalc();
+  $("#calc").classList.add("show");
+}
+function closeCalc(){
+  $("#calc").classList.remove("show");
+}
+function calcSetDoor(name){
+  calcDoor = (calcDoor === name) ? null : name;
+  renderCalc();
+}
+function calcTap(n){
+  calcSelection.push(n);
+  renderCalc();
+}
+function calcBackspace(){
+  calcSelection.pop();
+  renderCalc();
+}
+function calcClear(){
+  calcSelection = [];
+  calcDoor = null;
+  calcStepsHtml = "";
+  renderCalc();
+}
+function calcCompute(){
+  if(!calcSelection.length) return;
+  const nums = calcSelection.slice();
+  const sum = nums.reduce((a,b) => a + b, 0);
+  const root = digitalRoot(nums);
+  let steps = `${nums.join(" + ")} = ${sum}`;
+  if(sum > 9) steps += ` → ${String(sum).split("").join(" + ")} = ${root}`;
+  let result = `数字根 = <b>${root}</b>`;
+  if(calcDoor && DOORS[calcDoor]){
+    const d = DOORS[calcDoor];
+    if(nums.length === d.count && root === d.root){
+      result += `<br>✓ 这组钟码正好能开「${calcDoor}」——去反钟镇用 <b>open ${calcDoor} ${nums.join(" ")}</b> 试试。`;
+    }else{
+      result += `<br>对照「${calcDoor}」（根数${d.root}·契数${d.count}）：${nums.length !== d.count ? "个数不对" : "根数不对"}，还差一点。`;
+    }
+  }
+  calcStepsHtml = `<div class="calc-steps-line">${steps}</div><div class="calc-result">${result}</div>`;
+  renderCalc();
+}
+function renderCalc(){
+  // 对照门按钮
+  $("#calc-door-btns").innerHTML = Object.keys(DOORS).map(name => {
+    const d = DOORS[name];
+    const opened = state.flags[d.doneFlag];
+    const active = calcDoor === name;
+    return `<button class="action-btn ${active ? "" : "ghost"}" onclick="calcSetDoor('${name}')" style="${opened ? "opacity:.45;" : ""}">${name}${opened ? "·已开" : ""}</button>`;
+  }).join("");
+
+  // 对照门参考文字
+  const ref = $("#calc-door-ref");
+  if(calcDoor && DOORS[calcDoor]){
+    const d = DOORS[calcDoor];
+    ref.textContent = `对照门「${calcDoor}」：根数 ${d.root} · 契数 ${d.count}（要恰好 ${d.count} 个钟码，数字根 = ${d.root}）`;
+  }else{
+    ref.textContent = "选一扇门作为对照目标，或自由试算。";
+  }
+
+  // 当前组合
+  $("#calc-slot").innerHTML = calcSelection.length
+    ? calcSelection.map(n => `<span class="calc-slot-num">${n}</span>`).join("")
+    : "— 点下面的钟码开始组合 —";
+
+  // 数字按钮 0–9（已收集的钟码高亮，方便对照）
+  const owned = state.codes.slice();
+  $("#calc-digits").innerHTML = Array.from({length:10}, (_, n) => {
+    const has = owned.includes(n);
+    return `<button class="calc-digit" onclick="calcTap(${n})" style="${has ? "box-shadow:var(--glow);border-color:var(--accent);" : ""}" title="${has ? "已收集" : "未收集"}">${n}</button>`;
+  }).join("");
+
+  // 步骤/结果
+  $("#calc-steps").innerHTML = calcStepsHtml;
 }
 
 // ---- 左侧导航未读提示 ----
