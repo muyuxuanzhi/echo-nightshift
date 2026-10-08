@@ -198,6 +198,38 @@
   .flag-val.on{color:var(--accent);}
   .flag-val.off{opacity:.4;}
 
+  /* 新手指引遮罩 */
+  #tutorial{
+    position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:60;
+    display:none;align-items:center;justify-content:center;
+    font-family:inherit;
+  }
+  #tutorial.show{display:flex;}
+  #tutorial-box{
+    max-width:520px;width:90%;border:1px solid var(--accent);padding:32px 36px;
+    background:#05080d;border-radius:4px;
+    box-shadow:0 0 32px rgba(77,200,255,.12);
+  }
+  #tutorial-box h2{
+    font-size:16px;letter-spacing:6px;color:var(--accent);
+    margin:0 0 20px;text-align:center;
+  }
+  .tut-step{
+    margin-bottom:16px;padding-bottom:16px;
+    border-bottom:1px dashed var(--accent-dim);
+    font-size:13px;line-height:1.9;
+  }
+  .tut-step:last-of-type{border-bottom:none;margin-bottom:0;}
+  .tut-step strong{color:var(--accent);font-weight:600;}
+  .tut-tag{
+    display:inline-block;border:1px solid var(--accent);
+    border-radius:2px;padding:1px 6px;font-size:11px;
+    color:var(--accent);margin-right:4px;vertical-align:middle;
+  }
+  #tutorial-close{
+    margin-top:24px;width:100%;
+  }
+
   /* 结局遮罩 */
   #ending{
     position:fixed;inset:0;background:#000;color:#4dffb8;z-index:50;
@@ -244,6 +276,33 @@
 
 </div></div>
 
+<div id="tutorial">
+  <div id="tutorial-box">
+    <h2>欢迎来到镜中来客</h2>
+    <div class="tut-step">
+      <strong>你在哪里？</strong><br>
+      你现在站在<span class="tut-tag">反钟镇</span>里——一个钟永远停在下午六点的地方。镜子那头是<span class="tut-tag">阁楼</span>，住着一个叫苔丝的女孩。两边的人只能靠<em>写信</em>来传话。
+    </div>
+    <div class="tut-step">
+      <strong>怎么玩？</strong><br>
+      先读完左侧「书信」里的所有<span class="tut-tag">引导信</span>，写信入口就会解锁。<br>
+      然后用左侧「镜语」（终端）输入命令，查看和解开物件。<br>
+      试试输入 <code>help</code> 查看全部命令，<code>ls</code> 查看这里有什么。
+    </div>
+    <div class="tut-step">
+      <strong>解谜思路</strong><br>
+      格雷（你）和苔丝各持一半线索——她那边有一个数字，你这边有一件上锁的物件。写信互通消息，把两端的信息拼在一起，才能打开锁。<br>
+      密码格式：在镜语里输入 <code>decrypt &lt;物件名&gt; &lt;密码&gt;</code> 来解锁。
+    </div>
+    <div class="tut-step">
+      <strong>最后一件事</strong><br>
+      故事有三封关键的信，每封信都有预填草稿——直接投出即可，你随时可以加上自己的话。<br>
+      左上角的<span class="tut-tag">⟳ 镜面状态</span>随时查看进度。
+    </div>
+    <button class="action-btn" id="tutorial-close" onclick="closeTutorial()">明白了，开始探索</button>
+  </div>
+</div>
+
 <div id="ending">
   <h1>MIRROR · END</h1>
   <p id="ending-text"></p>
@@ -280,10 +339,13 @@ function defaultState(){
     introRead: [],            // 已读的引导信 id 列表（顺序解锁）
     sendUnlocked: false,      // 是否已解锁【写一段话】入口（读完最后一封引导信后为 true）
     crossUnlocked: false,     // 是否已解锁镜子两端互看（第一次投信后为 true）
+    tutorialSeen: false,      // 是否已看过新手指引（镜子的使用说明）
     flags: {
       gotAccessCode: false,     // 苔丝（阁楼）是否已看过旧怀表说明卡，得到数字
       decryptedReport: false,   // 格雷（反钟镇）是否已打开"争执记录"
-      reportSent: false,        // 真相是否已经写信投过镜子（触发结局线索）
+      ideaRequested: false,     // 格雷是否已写信求助（争执真相→求点子）
+      ideaReceived: false,      // 苔丝是否已把"续杯邀请函"的点子写信送回反钟镇
+      reportSent: false,        // 格雷是否已把"成功了"的最终回信送出（触发结局）
       endingSeen: false,
       watchedVideo: false,      // 苔丝（阁楼）是否已看过老照片（得到另一串数字）
       decryptedDiary: false,    // 格雷（反钟镇）是否已打开"格雷日记"
@@ -595,6 +657,24 @@ function buildMailList(tl){
         quip:"被一面镜子将了一军，这售后服务态度真是一言难尽。", mood:"creepy",
       });
     }
+    if(state.flags.ideaRequested && !state.flags.ideaReceived){
+      list.push({
+        kind:"sys3", id:"sys-needidea", from:"镜子雾气里的新字迹", time:"今天 下午",
+        subject:"镜子那头的人在求助",
+        body:"雾气又散开一道缝，这次字迹比以前急迫：\n\n「我搞清楚了。大摆钟和六点先生赌气吵了一架，谁也不肯先服软，才把整个反钟镇卡在下午六点。如果你那边有什么点子，能让两个死要面子的家伙体面地和好——请一定告诉我。」\n\n（那个后脑勺插着乌鸦羽毛的男孩，第一次听起来有点着急。）\n\n→ 去「书信」里写一段话，把点子送过去。",
+        locked:false, read: state.filesRead["A:__sys-needidea"] === true,
+        quip:"一个被困在下午茶时间里的人发来了求助，这个剧情发展，比作业截止通知还令人振奋。", mood:"normal",
+      });
+    }
+    if(state.flags.ideaReceived && !state.flags.reportSent){
+      list.push({
+        kind:"sys4", id:"sys-waiting", from:"镜子里漫出来的茶香", time:"今天 傍晚",
+        subject:"镜子那头，大概正在忙",
+        body:"雾气今天有点不一样——不像是有字要浮出来，倒像是有什么正在发生、等着变成结果的那种沉默。\n\n格雷收到你的邀请函点子了。就看他怎么送出去了。",
+        locked:false, read: state.filesRead["A:__sys-waiting"] === true,
+        quip:"静候佳音这件事，说起来轻松，实际上我已经刷了三次书信箱了。", mood:"normal",
+      });
+    }
   }
   state.sentMails
     .filter(m => m.toTl === tl)
@@ -673,12 +753,21 @@ function renderComposeSection(){
 }
 
 function defaultDraft(){
-  if(state.timeline === "B" && state.flags.decryptedReport && !state.flags.reportSent){
+  // 第一步：格雷解开争执记录后，写信求点子
+  if(state.timeline === "B" && state.flags.decryptedReport && !state.flags.ideaRequested){
     let base = "我搞清楚了。反钟镇的钟停在六点，是因为大摆钟和六点先生赌气吵了一架，谁也不肯先服软。\n如果你那边有什么点子，能让两个死要面子的家伙体面地和好——请一定告诉我。";
     if(state.flags.decryptedDiary){
       base += "\n\n我还翻到自己的一本日记，写日记的“我”说，总有一天会等到一个记性和我们不一样的人。我猜，那大概就是你。";
     }
     return base;
+  }
+  // 第二步：苔丝收到求助信后，回信支招（续杯邀请函的主意）
+  if(state.timeline === "A" && state.flags.ideaRequested && !state.flags.ideaReceived){
+    return "我琢磨了好久——要让两个谁都不肯先服软的人和好，那就得给他俩都准备一个“不算认输”的借口。\n我写了一封看着一本正经、内容其实相当胡闹的邀请函，邀请大摆钟和六点先生去参加“迟到了不知道多少年的续杯茶会”——不是道歉，是续杯，听着就体面多了。\n你把这个交给他俩试试？这招叫“逆向工程”，我跟数学老师偷师来的，专治各种死要面子。";
+  }
+  // 第三步：格雷把邀请函送出去，试过之后回信报喜（触发真正的结局）
+  if(state.timeline === "B" && state.flags.ideaReceived && !state.flags.reportSent){
+    return "成了！我把你的邀请函念给大摆钟和六点先生听，他们谁也没提“和好”两个字，谁也没说“对不起”，就这么揣着“续杯”这个冠冕堂皇的借口，重新坐下喝茶了。\n钟走到六点零一分了！司康饼也终于能吃完了！我现在正“正着”经历这一切，这种感觉太奇怪了——原来“正常地往前走”，是这个滋味啊。\n谢谢你的主意。虽然我很确定，这封邀请函荒唐得不像话——可它偏偏就成了。";
   }
   if(state.timeline === "B" && !state.crossUnlocked){
     return "如果这面镜子真能把话送到镜子外头——那我想说，我好像被困在一场总也走不完的下午六点里了。你那边，一切都还正常吗？";
@@ -697,20 +786,31 @@ function sendComposedMail(){
   const fromTl = state.timeline;
   const toTl = fromTl === "A" ? "B" : "A";
   const firstTime = !state.crossUnlocked;
-  const isReportMail = fromTl === "B" && state.flags.decryptedReport && !state.flags.reportSent;
+
+  // 三步书信链，对应完整剧情：① 格雷求点子 → ② 苔丝支招（续杯邀请函）→ ③ 格雷报喜（结局）
+  const isAskIdeaMail = fromTl === "B" && state.flags.decryptedReport && !state.flags.ideaRequested;
+  const isIdeaReplyMail = fromTl === "A" && state.flags.ideaRequested && !state.flags.ideaReceived;
+  const isFinalReportMail = fromTl === "B" && state.flags.ideaReceived && !state.flags.reportSent;
+
+  let subject = firstTime ? "第一次投进镜子里的话" : "捎来的话";
+  if(isAskIdeaMail) subject = "关于那场争执，我都搞清楚了";
+  else if(isIdeaReplyMail) subject = "一个说不通但很好玩的主意";
+  else if(isFinalReportMail) subject = "成了！钟走起来了";
 
   const mail = {
     id: "m" + Date.now(),
     fromTl, toTl,
-    subject: isReportMail ? "关于那场争执，我都搞清楚了" : (firstTime ? "第一次投进镜子里的话" : "捎来的话"),
+    subject,
     body: text,
     time: nowLabel(),
-    isEnding: isReportMail,
+    isEnding: isFinalReportMail,
     read: false,
   };
   state.sentMails.unshift(mail);
 
-  if(isReportMail) state.flags.reportSent = true;
+  if(isAskIdeaMail) state.flags.ideaRequested = true;
+  if(isIdeaReplyMail) state.flags.ideaReceived = true;
+  if(isFinalReportMail) state.flags.reportSent = true;
   if(!state.crossUnlocked) state.crossUnlocked = true;
 
   composeOpen = false;
@@ -727,7 +827,7 @@ function markMailRead(m){
       if(allIntroRead()) state.sendUnlocked = true;
       saveState();
     }
-  }else if(m.kind === "sys" || m.kind === "sys2"){
+  }else if(m.kind === "sys" || m.kind === "sys2" || m.kind === "sys3" || m.kind === "sys4"){
     const key = "A:__" + m.id;
     if(!state.filesRead[key]){ state.filesRead[key] = true; saveState(); }
   }else if(m.kind === "received"){
@@ -747,14 +847,16 @@ function renderSystem(){
   mainEl.innerHTML = `
     <div class="panel-title">镜面状态</div>
     <div class="flag-row"><span>苔丝已找到怀表密码</span><span class="flag-val ${f.gotAccessCode?"on":"off"}">${f.gotAccessCode?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>格雷已解开争执记录</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>真相已投过镜子（触发结局线索）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"YES":"NO"}</span></div>
     <div class="flag-row"><span>苔丝已看过老照片</span><span class="flag-val ${f.watchedVideo?"on":"off"}">${f.watchedVideo?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>格雷已解开争执记录</span><span class="flag-val ${f.decryptedReport?"on":"off"}">${f.decryptedReport?"YES":"NO"}</span></div>
     <div class="flag-row"><span>格雷已翻开自己的日记</span><span class="flag-val ${f.decryptedDiary?"on":"off"}">${f.decryptedDiary?"YES":"NO"}</span></div>
     <div class="flag-row"><span>格雷已看到井边的怪照片</span><span class="flag-val ${f.sawPhoto?"on":"off"}">${f.sawPhoto?"YES":"NO"}</span></div>
-    <div class="flag-row"><span>【写一段话】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
+    <div class="flag-row"><span>─ 第一封信：格雷写信求点子</span><span class="flag-val ${f.ideaRequested?"on":"off"}">${f.ideaRequested?"已发出":"未发出"}</span></div>
+    <div class="flag-row"><span>─ 第二封信：苔丝支招（续杯邀请函）</span><span class="flag-val ${f.ideaReceived?"on":"off"}">${f.ideaReceived?"已发出":"未发出"}</span></div>
+    <div class="flag-row"><span>─ 第三封信：格雷报喜（触发结局）</span><span class="flag-val ${f.reportSent?"on":"off"}">${f.reportSent?"已发出":"未发出"}</span></div>
     <div class="flag-row"><span>镜子两端已连通</span><span class="flag-val ${state.crossUnlocked?"on":"off"}">${state.crossUnlocked?"YES":"NO"}</span></div>
-    <div class="hint">写信 / 看信在本作里就是「存档 / 读档」：写一段话 = 存档，翻开书信 = 读档。<br>第一次投出信件会连通镜子两端；在${DATE_B_SHORT}解开争执记录后再写一段话，会把真相送到${DATE_A_SHORT}，触发结局。</div>
+    <div class="flag-row"><span>【写一段话】入口已解锁</span><span class="flag-val ${state.sendUnlocked?"on":"off"}">${state.sendUnlocked?"YES":"NO"}</span></div>
+    <div class="hint">三封信是本作的完整剧情链：① 格雷解开争执记录 → 写信求点子；② 苔丝想到续杯邀请函 → 回信支招；③ 格雷把邀请函送出去 → 钟走起来了 → 写信报喜（结局）。每封信都对应写信界面的预填草稿，直接投出即可。</div>
     <div style="margin-top:24px;">
       <button class="action-btn" onclick="if(confirm('确定要重置全部进度吗？')){localStorage.removeItem('${STORAGE_KEY}');location.reload();}">重置存档</button>
     </div>
@@ -951,10 +1053,28 @@ setInterval(tickClock, 1000);
 $("#tl-toggle-btn").addEventListener("click", toggleTimeline);
 $$(".nav-item").forEach(nav => nav.addEventListener("click", () => switchApp(nav.dataset.app)));
 
+// ---- 新手指引 ----
+function showTutorial(){
+  const box = $("#tutorial");
+  if(box) box.classList.add("show");
+}
+function closeTutorial(){
+  const box = $("#tutorial");
+  if(box) box.classList.remove("show");
+  if(!state.tutorialSeen){
+    state.tutorialSeen = true;
+    saveState();
+  }
+}
+
 // ---- 初始化 ----
 applyTheme();
 tickClock();
 renderApp(currentApp);
+// 首次进入自动弹新手指引
+if(!state.tutorialSeen){
+  setTimeout(showTutorial, 400);
+}
 renderNavDots();
 </script>
 </body>
